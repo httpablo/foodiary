@@ -1,23 +1,16 @@
-import { IController } from "../contracts/Controllers";
-import { z } from "zod";
+import { Schema } from "../../kernel/decorators/Schema";
+import { Controller } from "../contracts/Controllers";
+import { HelloBody, helloSchema } from "./schemas/helloSchema";
 
-const schema = z.object({
-  account: z.object({
-    name: z.string().min(1, "Name is required!"),
-  }),
-  email: z.email("Invalid email").min(1, "Email is required!"),
-});
-
-export class HelloController implements IController<unknown> {
-  async handle(
-    request: IController.Request<{ hello: true }>,
-  ): Promise<IController.Response<unknown>> {
-    const parsedBody = schema.parse(request.body);
-
+@Schema(helloSchema)
+export class HelloController extends Controller<unknown> {
+  protected override async handle(
+    request: Controller.Request<HelloBody>,
+  ): Promise<Controller.Response<unknown>> {
     return {
       statusCode: 200,
       body: {
-        parsedBody,
+        parsedBody: request.body,
       },
     };
   }
