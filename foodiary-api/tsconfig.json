@@ -5,6 +5,13 @@
     // "rootDir": "./src",
     // "outDir": "./dist",
 
+    "baseUrl": ".",
+    "paths": {
+      "@application/*": ["src/application/*"],
+      "@kernel/*": ["src/kernel/*"],
+      "@main/*": ["src/main/*"],
+    },
+
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
