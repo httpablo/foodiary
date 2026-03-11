@@ -8,7 +8,10 @@ export class Registry {
     if (this.providers.has(token)) {
       throw new Error(`Provider with token ${token} is already registered.`);
     }
-    this.providers.set(token, { impl });
+
+    const deps = Reflect.getMetadata("design:paramtypes", impl) ?? [];
+
+    this.providers.set(token, { impl, deps });
   }
 
   resolve<TImpl extends Constructor>(impl: TImpl): InstanceType<TImpl> {
@@ -19,7 +22,8 @@ export class Registry {
       throw new Error(`Provider with token ${token} is not registered.`);
     }
 
-    const instance = new provider.impl();
+    const deps = provider.deps.map((dep) => this.resolve(dep));
+    const instance = new provider.impl(...deps);
 
     return instance;
   }
@@ -28,5 +32,6 @@ export class Registry {
 export namespace Registry {
   export type Provider = {
     impl: Constructor;
+    deps: Constructor[];
   };
 }
