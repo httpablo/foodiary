@@ -10,16 +10,6 @@ provider:
 package:
   individually: true
 
-build:
-  esbuild:
-    bundle: true
-    minify: true
-    sourcemap: false
-    exclude:
-      - "@aws-sdk/*"
-    external:
-      - "@aws-sdk/*"
-
 functions:
   hello:
     handler: src/main/functions/hello.handler

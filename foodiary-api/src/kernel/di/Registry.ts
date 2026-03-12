@@ -1,6 +1,17 @@
 type Constructor<T = any> = new (...args: any) => T;
 
 export class Registry {
+  private static instance: Registry | undefined;
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new Registry();
+    }
+    return this.instance;
+  }
+
+  private constructor() {}
+
   private readonly providers = new Map<string, Registry.Provider>();
 
   register(impl: Constructor) {
