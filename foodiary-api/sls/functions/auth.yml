@@ -1,0 +1,6 @@
+signUp:
+  handler: src/main/functions/auth/signUp.handler
+  events:
+    - httpApi:
+        path: /auth/sign-up
+        method: POST
