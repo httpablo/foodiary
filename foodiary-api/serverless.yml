@@ -8,10 +8,15 @@ provider:
   memorySize: 128
   stage: ${opt:stage, 'dev'}
   environment:
-    COGNITO_CLIENT_ID: ${file(./sls/config/env.yml):COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_ID:
+      Ref: UserPoolClient
 
 package:
   individually: true
+
+custom:
+  cognito:
+    PoolName: ${self:service}-${self:provider.stage}-UserPool
 
 build:
   esbuild:
