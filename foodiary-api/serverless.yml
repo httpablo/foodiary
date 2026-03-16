@@ -7,6 +7,8 @@ provider:
   runtime: nodejs22.x
   memorySize: 128
   stage: ${opt:stage, 'dev'}
+  environment:
+    COGNITO_CLIENT_ID: ${file(./sls/config/env.yml):COGNITO_CLIENT_ID}
 
 package:
   individually: true
@@ -15,8 +17,6 @@ build:
   esbuild:
     configFile: ./esbuild.config.mjs
 
-functions:
-  - ${file(./sls/functions/auth.yml)}
+functions: ${file(./sls/functions/auth.yml)}
 
-resources:
-  - ${file(./sls/resources/UserPool.yml)}
+resources: ${file(./sls/resources/UserPool.yml)}

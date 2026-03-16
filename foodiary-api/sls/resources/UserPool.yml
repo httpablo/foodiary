@@ -35,3 +35,10 @@ Resources:
         RefreshToken: days
       RefreshTokenValidity: 30
       AccessTokenValidity: 12
+
+Outputs:
+  UserPoolClientId:
+    Value:
+      Ref: UserPoolClient
+    Export:
+      Name: ${self:service}-${self:provider.stage}-UserPoolClientId

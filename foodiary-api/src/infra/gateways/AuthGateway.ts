@@ -1,8 +1,9 @@
 import { SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoClient } from "@infra/clients/cognitoClient";
+import { AppConfig } from "@shared/config/AppConfig";
 
 export class AuthGateway {
-  constructor(private readonly AuthGateway: AuthGateway) {}
+  constructor(private readonly appConfig: AppConfig) {}
 
   async signUp({
     email,
