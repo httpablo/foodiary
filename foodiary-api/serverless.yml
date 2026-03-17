@@ -25,3 +25,4 @@ build:
 functions: ${file(./sls/functions/auth.yml)}
 
 resources: ${file(./sls/resources/UserPool.yml)}
+  ${file(./sls/resources/MainTable.yml)}
