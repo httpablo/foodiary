@@ -1,13 +1,13 @@
-Resource:
+Resources:
   MainTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      BilingMode: PAY_PER_REQUEST
+      BillingMode: PAY_PER_REQUEST
       TableName: ${self:service}-${self:provider.stage}-MainTable
-      DeleteProtection: true
+      DeletionProtectionEnabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-        RecoveryWindowInDays: 35
+        RecoveryPeriodInDays: 35
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
