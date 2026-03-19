@@ -10,6 +10,12 @@ provider:
   environment:
     COGNITO_CLIENT_ID:
       Ref: UserPoolClient
+    COGNITO_CLIENT_SECRET:
+      Fn::GetAtt:
+        - UserPoolClient
+        - ClientSecret
+    MAIN_TABLE_NAME:
+      Ref: MainTable
   iam:
     role: ${file(./sls/config/role.yml)}
 

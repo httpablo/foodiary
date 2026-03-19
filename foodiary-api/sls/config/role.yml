@@ -2,10 +2,9 @@ statements:
   - Effect: Allow
     Action:
       - dynamodb:PutItem
-      - dynamodb:GetItem
-      - dynamodb:UpdateItem
-      - dynamodb:DeleteItem
+      - dynamodb:Query
     Resource:
       - Fn::GetAtt:
           - MainTable
           - Arn
+      - Fn::Sub: "${MainTable.Arn}/index/*"

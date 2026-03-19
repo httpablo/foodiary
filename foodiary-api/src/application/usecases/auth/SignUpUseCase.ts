@@ -14,6 +14,12 @@ export class SignUpUseCase {
     email,
     password,
   }: SignUpUseCase.Input): Promise<SignUpUseCase.Output> {
+    const emailAlreadyExists = await this.accountRepository.findByEmail(email);
+
+    if (emailAlreadyExists) {
+      throw new Error("Email already exists");
+    }
+
     const { externalId } = await this.authGateway.signUp({ email, password });
 
     const account = new Account({ email, externalId });
