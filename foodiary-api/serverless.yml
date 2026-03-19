@@ -18,6 +18,13 @@ provider:
       Ref: MainTable
   iam:
     role: ${file(./sls/config/role.yml)}
+  httpApi:
+    authorizers:
+      CognitoAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+        audience:
+          - !Ref UserPoolClient
 
 package:
   individually: true
@@ -30,7 +37,9 @@ build:
   esbuild:
     configFile: ./esbuild.config.mjs
 
-functions: ${file(./sls/functions/auth.yml)}
+functions:
+  - ${file(./sls/functions/auth.yml)}
+  - ${file(./sls/functions/meals.yml)}
 
 resources:
   - ${file(./sls/resources/UserPool.yml)}

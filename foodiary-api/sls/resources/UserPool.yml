@@ -38,6 +38,11 @@ Resources:
       AccessTokenValidity: 12
 
 Outputs:
+  UserPoolId:
+    Value:
+      Ref: UserPool
+    Export:
+      Name: ${self:service}-${self:provider.stage}-UserPoolId
   UserPoolClientId:
     Value:
       Ref: UserPoolClient

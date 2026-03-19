@@ -1,0 +1,23 @@
+{
+  "yaml.customTags": [
+    "!Sub",
+    "!Ref",
+    "!GetAtt",
+    "!Join",
+    "!ImportValue",
+    "!If",
+    "!Select",
+    "!Split",
+    "!Base64",
+    "!Equals",
+    "!And",
+    "!Or",
+    "!Not",
+    "!Sub scalar",
+    "!Ref scalar",
+    "!GetAtt scalar",
+    "!Sub sequence",
+    "!Ref sequence",
+    "!GetAtt sequence"
+  ]
+}

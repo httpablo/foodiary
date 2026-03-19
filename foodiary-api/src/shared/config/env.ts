@@ -1,4 +1,4 @@
-import { z, ZodError } from "zod";
+import { z } from "zod";
 
 const schema = z.object({
   COGNITO_CLIENT_ID: z.string().min(1),
@@ -7,14 +7,13 @@ const schema = z.object({
 });
 
 function getEnv() {
-  try {
-    return schema.parse(process.env);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      throw new Error("Invalid environment variables", { cause: error });
-    }
-    throw error;
+  const result = schema.safeParse(process.env);
+
+  if (!result.success) {
+    throw new Error("Invalid environment variables", { cause: result.error });
   }
+
+  return result.data;
 }
 
 export const env = getEnv();
