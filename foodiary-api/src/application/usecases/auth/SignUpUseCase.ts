@@ -32,8 +32,8 @@ export class SignUpUseCase {
     });
 
     return {
-      accessToken: accessToken,
-      refreshToken: refreshToken,
+      accessToken,
+      refreshToken,
     };
   }
 }

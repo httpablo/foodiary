@@ -5,8 +5,15 @@ signUp:
         path: /auth/sign-up
         method: POST
 
-preSignUp:
-  handler: src/main/functions/auth/preSignUp.handler
+signIn:
+  handler: src/main/functions/auth/signIn.handler
+  events:
+    - httpApi:
+        path: /auth/sign-in
+        method: POST
+
+preSignUpTrigger:
+  handler: src/main/functions/auth/preSignUpTrigger.handler
   events:
     - cognitoUserPool:
         pool: ${self:custom.cognito.PoolName}
