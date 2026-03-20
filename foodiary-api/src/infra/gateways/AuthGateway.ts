@@ -1,4 +1,5 @@
 import {
+  AdminConfirmSignUpCommand,
   InitiateAuthCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
@@ -43,11 +44,18 @@ export class AuthGateway {
   async signUp({
     email,
     password,
+    internalId,
   }: AuthGateway.SignUpParams): Promise<AuthGateway.SignUpResult> {
     const command = new SignUpCommand({
       ClientId: this.appConfig.auth.cognito.client.id,
       Username: email,
       Password: password,
+      UserAttributes: [
+        {
+          Name: "custom:internalId",
+          Value: internalId,
+        },
+      ],
       SecretHash: this.getSecretHash(email),
     });
 
@@ -58,6 +66,15 @@ export class AuthGateway {
     }
 
     return { externalId };
+  }
+
+  async confirmUser(email: string): Promise<void> {
+    const command = new AdminConfirmSignUpCommand({
+      UserPoolId: this.appConfig.auth.cognito.userPoolId,
+      Username: email,
+    });
+
+    await cognitoClient.send(command);
   }
 
   private getSecretHash(email: string): string {
@@ -72,6 +89,7 @@ export namespace AuthGateway {
   export type SignUpParams = {
     email: string;
     password: string;
+    internalId?: string;
   };
 
   export type SignUpResult = {

@@ -21,15 +21,42 @@ export class SignUpUseCase {
       throw new EmailAlreadyInUse();
     }
 
-    const { externalId } = await this.authGateway.signUp({ email, password });
+    const account = new Account({ email });
 
-    const account = new Account({ email, externalId });
-    await this.accountRepository.create(account);
-
-    const { accessToken, refreshToken } = await this.authGateway.signIn({
+    const { externalId } = await this.authGateway.signUp({
       email,
       password,
+      internalId: account.id,
     });
+
+    account.externalId = externalId;
+
+    await this.accountRepository.create(account);
+
+    let accessToken: string;
+    let refreshToken: string;
+
+    try {
+      const signInResult = await this.authGateway.signIn({
+        email,
+        password,
+      });
+      accessToken = signInResult.accessToken;
+      refreshToken = signInResult.refreshToken;
+    } catch (error) {
+      if ((error as { name?: string }).name !== "UserNotConfirmedException") {
+        throw error;
+      }
+
+      await this.authGateway.confirmUser(email);
+
+      const signInResult = await this.authGateway.signIn({
+        email,
+        password,
+      });
+      accessToken = signInResult.accessToken;
+      refreshToken = signInResult.refreshToken;
+    }
 
     return {
       accessToken,

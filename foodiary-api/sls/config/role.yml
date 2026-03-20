@@ -14,3 +14,8 @@ statements:
       - lambda:RemovePermission
     Resource:
       - Fn::Sub: "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*"
+  - Effect: Allow
+    Action:
+      - cognito-idp:AdminConfirmSignUp
+    Resource:
+      - Fn::Sub: "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"

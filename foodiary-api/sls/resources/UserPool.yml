@@ -15,6 +15,11 @@ Resources:
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
+      Schema:
+        - Name: internalId
+          Required: false
+          Mutable: false
+          AttributeDataType: String
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -22,6 +27,30 @@ Resources:
           RequireUppercase: false
           RequireNumbers: false
           RequireSymbols: false
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpTriggerLambdaFunction.Arn
+        PreTokenGenerationConfig:
+          LambdaArn: !GetAtt PreTokenGenerationTriggerLambdaFunction.Arn
+          LambdaVersion: V2_0
+
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: PreSignUpTriggerLambdaFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PreSignUpTriggerLambdaFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  PreTokenGenerationPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: PreTokenGenerationTriggerLambdaFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PreTokenGenerationTriggerLambdaFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:

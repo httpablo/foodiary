@@ -1,5 +1,14 @@
 signUp:
   handler: src/main/functions/auth/signUp.handler
+  environment:
+    COGNITO_USER_POOL_ID:
+      Ref: UserPool
+    COGNITO_CLIENT_ID:
+      Ref: UserPoolClient
+    COGNITO_CLIENT_SECRET:
+      Fn::GetAtt:
+        - UserPoolClient
+        - ClientSecret
   events:
     - httpApi:
         method: POST
@@ -7,16 +16,25 @@ signUp:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
+  environment:
+    COGNITO_USER_POOL_ID:
+      Ref: UserPool
+    COGNITO_CLIENT_ID:
+      Ref: UserPoolClient
+    COGNITO_CLIENT_SECRET:
+      Fn::GetAtt:
+        - UserPoolClient
+        - ClientSecret
   events:
     - httpApi:
         method: POST
         path: /auth/sign-in
 
 preSignUpTrigger:
-  handler: src/main/functions/auth/preSignUpTrigger.handler
-  events:
-    - cognitoUserPool:
-        pool: ${self:custom.cognito.PoolName}
-        trigger: PreSignUp
-        existing: true
-        forceDeploy: true
+  handler: src/main/functions/auth/preSignUp.handler
+  events: []
+
+# The trigger is configured manually to support event v2
+# Go to UserPool.yml for the trigger configuration
+preTokenGenerationTrigger:
+  handler: src/main/functions/auth/preTokenGenerationTrigger.handler

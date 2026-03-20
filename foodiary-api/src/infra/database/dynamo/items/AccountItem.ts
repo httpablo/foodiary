@@ -23,8 +23,10 @@ export class AccountItem {
 
   static fromEntity(account: Account) {
     return new AccountItem({
-      ...account,
+      id: account.id,
+      email: account.email,
       createdAt: account.createdAt.toISOString(),
+      ...(account.externalId ? { externalId: account.externalId } : {}),
     });
   }
 
@@ -32,8 +34,8 @@ export class AccountItem {
     return new Account({
       id: accountItem.id,
       email: accountItem.email,
-      externalId: accountItem.externalId,
       createdAt: new Date(accountItem.createdAt),
+      ...(accountItem.externalId ? { externalId: accountItem.externalId } : {}),
     });
   }
 
@@ -65,7 +67,7 @@ export namespace AccountItem {
   export type Atributes = {
     id: string;
     email: string;
-    externalId: string;
+    externalId?: string;
     createdAt: string;
   };
 
