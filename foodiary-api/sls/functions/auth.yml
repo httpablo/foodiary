@@ -30,6 +30,20 @@ signIn:
         method: POST
         path: /auth/sign-in
 
+refreshToken:
+  handler: src/main/functions/auth/refreshToken.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/refresh-token
+
+forgotPassword:
+  handler: src/main/functions/auth/forgotPassword.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/forgot-password
+
 preSignUpTrigger:
   handler: src/main/functions/auth/preSignUp.handler
   events: []

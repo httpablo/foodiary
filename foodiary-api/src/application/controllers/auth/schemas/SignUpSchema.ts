@@ -5,10 +5,10 @@ export const signUpSchema = z.object({
     email: z
       .string()
       .email({ message: "Invalid email" })
-      .min(1, { message: "Email is required" }),
+      .min(1, { message: "email is required" }),
     password: z
       .string()
-      .min(8, { message: "Password must be at least 8 characters long" }),
+      .min(8, { message: "password must be at least 8 characters long" }),
   }),
 });
 
