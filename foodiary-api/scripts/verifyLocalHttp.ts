@@ -9,6 +9,7 @@ import path from 'node:path';
 
 import { createHttpServer } from '@main/http/server';
 import { getPostgresPool } from '@infra/database/postgres/pool';
+import { LocalMealsFileStorageGateway } from '@infra/gateways/LocalMealsFileStorageGateway';
 
 async function main() {
   const mealsDirectory = await mkdtemp(path.join(tmpdir(), 'foodiary-meals-test-'));
@@ -20,6 +21,7 @@ async function main() {
   const port = (server.address() as AddressInfo).port;
   const base = `http://127.0.0.1:${port}`;
   const email = `http-check-${Date.now()}@example.test`;
+  const otherEmail = `http-check-other-${Date.now()}@example.test`;
   const password = 'http-password-123';
   const pool = getPostgresPool();
 
@@ -196,6 +198,15 @@ async function main() {
     assert.equal(detailResponse.status, 200);
     const { meal } = await detailResponse.json();
     assert.equal(meal.status, 'QUEUED');
+    const mealEdit = {
+      name: 'Almoço corrigido',
+      foods: [{ name: 'Arroz', quantity: '100 g', proteins: 3, carbohydrates: 28, fats: 1 }],
+    };
+    assert.equal((await request(`/meals/${mealId}`, json('PATCH', mealEdit, signupTokens.accessToken))).status, 400);
+    assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit, signupTokens.accessToken))).status, 400);
+    assert.equal((await request(`/meals/${mealId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 400);
     assert.ok(meal.inputFileURL.startsWith('/meal-files/'));
     const fileResponse = await request(meal.inputFileURL);
     assert.equal(fileResponse.status, 200);
@@ -204,9 +215,39 @@ async function main() {
     assert.equal((await request(meal.inputFileURL.replace(/signature=[a-f0-9]+/, 'signature=deadbeef'))).status, 404);
 
     await pool.query(
-      `UPDATE meals SET status = 'SUCCESS', created_at = $2 WHERE id = $1`,
-      [mealId, new Date('2026-10-10T02:30:00.000Z')],
+      'UPDATE meals SET status = $3, created_at = $2 WHERE id = $1',
+      [mealId, new Date('2026-10-10T02:30:00.000Z'), 'SUCCESS'],
     );
+    assert.equal((await request(`/meals/${mealId}`, json('PATCH', mealEdit))).status, 401);
+    assert.equal((await request(`/meals/${mealId}`, json('PATCH', {
+      ...mealEdit, foods: [{ ...mealEdit.foods[0], proteins: -1 }],
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request(`/meals/${mealId}`, json('PATCH', mealEdit, signupTokens.accessToken))).status, 204);
+    const corrected = await request(`/meals/${mealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(corrected.status, 200);
+    const correctedMeal = (await corrected.json()).meal;
+    assert.equal(correctedMeal.name, 'Almoço corrigido');
+    assert.equal(correctedMeal.foods[0].calories, 133);
+    assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit))).status, 401);
+    assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', {
+      ...mealEdit, foods: [],
+    }, signupTokens.accessToken))).status, 400);
+    const otherSignup = await request('/auth/sign-up', json('POST', {
+      account: { email: otherEmail, password },
+      profile: {
+        name: 'Other User', birthDate: '2000-01-01', gender: 'FEMALE',
+        goal: 'MAINTAIN', height: 170, weight: 65, activityLevel: 'LIGHT',
+      },
+    }));
+    assert.equal(otherSignup.status, 201);
+    const otherTokens = await otherSignup.json();
+    assert.equal((await request(`/meals/${mealId}`, json('PATCH', mealEdit, otherTokens.accessToken))).status, 404);
+    assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit, otherTokens.accessToken))).status, 404);
+    assert.equal((await request(`/meals/${mealId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    })).status, 404);
     const localDay = await request('/meals?date=2026-10-09&timezoneOffsetMinutes=180', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
@@ -216,11 +257,60 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     assert.equal((await utcDay.json()).meals.length, 0);
+    const repeatedResponse = await request(`/meals/${mealId}/repeat`, json('POST', {
+      name: 'Almoço de hoje',
+      foods: [{ name: 'Arroz', quantity: '150 g', proteins: 4.5, carbohydrates: 42, fats: 1.5 }],
+    }, signupTokens.accessToken));
+    assert.equal(repeatedResponse.status, 201, await repeatedResponse.clone().text());
+    const { mealId: repeatedId } = await repeatedResponse.json();
+    assert.notEqual(repeatedId, mealId);
+    const repeatedDetail = await request(`/meals/${repeatedId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(repeatedDetail.status, 200);
+    const repeatedMeal = (await repeatedDetail.json()).meal;
+    assert.equal(repeatedMeal.status, 'SUCCESS');
+    assert.equal(repeatedMeal.inputType, 'MANUAL');
+    assert.equal(repeatedMeal.inputFileURL, null);
+    assert.equal(repeatedMeal.foods[0].calories, 200);
+    assert.equal((await request(`/meals/${repeatedId}/repeat`, json('POST', mealEdit, otherTokens.accessToken))).status, 404);
+    const repeatedDay = await request(`/meals?date=${new Date().toISOString().slice(0, 10)}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal((await repeatedDay.json()).meals.some((item: { id: string }) => item.id === repeatedId), true);
+    assert.equal((await request(`/meals/${mealId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(`/meals/${mealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 404);
+    assert.equal((await request(meal.inputFileURL)).status, 404);
+    const deletedFileKey = new URL(meal.inputFileURL, base).pathname.replace('/meal-files/', '');
+    await new LocalMealsFileStorageGateway().write(deletedFileKey, picture);
+    assert.equal((await request(meal.inputFileURL)).status, 404);
+    const afterDelete = await request('/meals?date=2026-10-09&timezoneOffsetMinutes=180', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal((await afterDelete.json()).meals.some((item: { id: string }) => item.id === mealId), false);
+    assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit, signupTokens.accessToken))).status, 404);
+    const independentCopy = await request(`/meals/${repeatedId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(independentCopy.status, 200);
+    assert.equal((await independentCopy.json()).meal.foods[0].quantity, '150 g');
+    assert.equal((await request(`/meals/${repeatedId}`, json('PATCH', mealEdit, signupTokens.accessToken))).status, 204);
+    assert.equal((await request(`/meals/${repeatedId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(`/meals/${repeatedId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 404);
 
     // eslint-disable-next-line no-console
-    console.log('Local HTTP routes, authentication, meal upload, profile photo, and signed file access: OK');
+    console.log('Local HTTP routes, authentication, meal upload, repeat, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
+    await pool.query('DELETE FROM accounts WHERE email = $1', [otherEmail]);
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await pool.end();
     await rm(mealsDirectory, { recursive: true, force: true });

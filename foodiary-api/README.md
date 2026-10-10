@@ -34,6 +34,9 @@ Para acessar a API por um celular na mesma rede, use o IP local do computador em
 | POST | `/meals` | Bearer token |
 | POST | `/meal-uploads/:mealId` | Bearer token |
 | GET | `/meals/:mealId` | Bearer token |
+| PATCH | `/meals/:mealId` | Bearer token; corrige nome e alimentos de refeição concluída |
+| DELETE | `/meals/:mealId` | Bearer token; exclui refeição concluída |
+| POST | `/meals/:mealId/repeat` | Bearer token; cria cópia revisada para o momento atual, sem arquivo ou IA |
 | GET | `/meal-files/:accountId/:filename` | Assinatura temporária na URL |
 
 Após o upload, a refeição fica em `QUEUED`. Com `OPENAI_API_KEY` configurada, o servidor local inicia um worker que busca trabalhos no PostgreSQL, processa um por vez, tenta novamente após 30 segundos em caso de falha e marca `FAILED` após duas tentativas. Trabalhos interrompidos há mais de 15 minutos voltam à fila. Os códigos de recuperação de senha aparecem no terminal **apenas em desenvolvimento**. Não há entrega de e-mail configurada para produção. Os detalhes do banco e das migrações estão em [db/README.md](db/README.md).
