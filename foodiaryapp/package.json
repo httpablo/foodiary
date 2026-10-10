@@ -1,0 +1,69 @@
+{
+  "name": "foodiaryapp",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.5.2",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start --lan",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo-google-fonts/host-grotesk": "^0.4.1",
+    "@expo/dom-webview": "~57.0.1",
+    "@gorhom/bottom-sheet": "^5.2.7",
+    "@hookform/resolvers": "^5.2.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
+    "@react-navigation/native": "^7.1.24",
+    "@react-navigation/native-stack": "^7.8.5",
+    "@tanstack/react-query": "^5.90.11",
+    "axios": "^1.13.2",
+    "expo": "^57.0.27",
+    "expo-asset": "~57.0.19",
+    "expo-audio": "~57.0.5",
+    "expo-blur": "~57.0.3",
+    "expo-camera": "~57.0.6",
+    "expo-file-system": "~57.0.7",
+    "expo-font": "~57.0.4",
+    "expo-image-manipulator": "~57.0.21",
+    "expo-image-picker": "~57.0.20",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.5",
+    "lucide-react-native": "^0.555.0",
+    "moti": "^0.30.0",
+    "react": "19.2.3",
+    "react-hook-form": "^7.68.0",
+    "react-native": "0.86.3",
+    "react-native-base64": "^0.2.2",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "~4.5.1",
+    "react-native-safe-area-context": "5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-svg": "15.15.4",
+    "react-native-worklets": "0.10.1",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@eslint/js": "^9.39.1",
+    "@types/react": "~19.2.18",
+    "@types/react-native-base64": "^0.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "jiti": "^2.6.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.48.1"
+  },
+  "private": true,
+  "pnpm": {
+    "patchedDependencies": {
+      "moti@0.30.0": "patches/moti@0.30.0.patch"
+    }
+  }
+}

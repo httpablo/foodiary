@@ -1,0 +1,52 @@
+diff --git a/build/skeleton/skeleton-new.js b/build/skeleton/skeleton-new.js
+index 969296525e45f6f59de7c79c74f51b49feeb1ff5..1848b7099ae6fb55ab890ebdca7fad99132e5d95 100644
+--- a/build/skeleton/skeleton-new.js
++++ b/build/skeleton/skeleton-new.js
+@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+ import React, { createContext, useContext } from 'react';
+ import { View, StyleSheet } from 'react-native';
+ import { useAnimatedStyle, useDerivedValue, useSharedValue, } from 'react-native-reanimated';
+-import { View as MotiView } from '../components';
++import { View as MotiView } from '../components/view';
+ import { DEFAULT_SKELETON_SIZE as DEFAULT_SIZE, defaultDarkColors, defaultLightColors, baseColors, } from './shared';
+ export default function Skeleton(props) {
+     const skeletonGroupContext = useContext(SkeletonGroupContext);
+diff --git a/build/skeleton/skeleton.js b/build/skeleton/skeleton.js
+index 4e69103c339be320b9170f75559fef79ea97e0a9..25f6b3a20252a88200bcc8bf697655387ce818f9 100644
+--- a/build/skeleton/skeleton.js
++++ b/build/skeleton/skeleton.js
+@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+ import { LinearGradient } from 'expo-linear-gradient';
+ import React, { useState, createContext, useContext } from 'react';
+ import { View, StyleSheet } from 'react-native';
+-import { View as MotiView } from '../components';
++import { View as MotiView } from '../components/view';
+ import { AnimatePresence } from '../core';
+ import { DEFAULT_SKELETON_SIZE as DEFAULT_SIZE, defaultDarkColors, defaultLightColors, baseColors, } from './shared';
+ export default function Skeleton(props) {
+diff --git a/src/skeleton/skeleton-new.tsx b/src/skeleton/skeleton-new.tsx
+index 32ac3dadef5e31dc686efaffa3bfeb6e4f5f359d..af306488bf944ef39e099a1b18d5f3d11e5dafb6 100644
+--- a/src/skeleton/skeleton-new.tsx
++++ b/src/skeleton/skeleton-new.tsx
+@@ -7,7 +7,7 @@ import {
+ } from 'react-native-reanimated'
+ import type Animated from 'react-native-reanimated'
+ 
+-import { View as MotiView } from '../components'
++import { View as MotiView } from '../components/view'
+ import { MotiTransitionProp } from '../core'
+ import {
+   DEFAULT_SKELETON_SIZE as DEFAULT_SIZE,
+diff --git a/src/skeleton/skeleton.tsx b/src/skeleton/skeleton.tsx
+index 3ef5dd11cf582a7b0b6760ae8ca3215fcb182ff6..8bcd14713f13a5743da7695dc690cc4c0f1b970f 100644
+--- a/src/skeleton/skeleton.tsx
++++ b/src/skeleton/skeleton.tsx
+@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient'
+ import React, { useState, createContext, useContext } from 'react'
+ import { View, StyleSheet } from 'react-native'
+ 
+-import { View as MotiView } from '../components'
++import { View as MotiView } from '../components/view'
+ import { AnimatePresence, MotiTransitionProp } from '../core'
+ import {
+   DEFAULT_SKELETON_SIZE as DEFAULT_SIZE,
