@@ -1,4 +1,5 @@
 import { Meal, MealInputType } from '@app/types/Meal';
+import { summarizeFoods } from '@app/lib/summarizeFoods';
 import { useNavigation } from '@react-navigation/native';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
@@ -23,24 +24,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
 
   const isPictureInput = meal?.inputType === MealInputType.PICTURE;
 
-  const summary = useMemo(() => (
-    (meal?.foods ?? []).reduce(
-      (acc, food) => {
-        const proteinsCalories = food.proteins * 4;
-        const carbohydratesCalories = food.carbohydrates * 4;
-        const fatsCalories = food.fats * 9;
-        const totalCalories = Math.round(proteinsCalories + carbohydratesCalories + fatsCalories);
-
-        return {
-          calories: acc.calories + totalCalories,
-          proteins: acc.proteins + food.proteins,
-          carbohydrates: acc.carbohydrates + food.carbohydrates,
-          fats: acc.fats + food.fats,
-        };
-      },
-      { calories: 0, proteins: 0, carbohydrates: 0, fats: 0 },
-    )
-  ), [meal?.foods]);
+  const summary = useMemo(() => summarizeFoods(meal?.foods ?? []), [meal?.foods]);
 
   const percentages = useMemo(() => {
     const proteinsCalories = summary.proteins * 4;
@@ -63,7 +47,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
       <StatusBar animated translucent barStyle="light-content" />
 
       <View style={[styles.container]}>
-        {isPictureInput && (
+        {isPictureInput && meal?.inputFileURL && (
           <ImageBackground
             style={styles.image}
             source={{ uri: meal.inputFileURL }}

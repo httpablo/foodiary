@@ -97,7 +97,7 @@ export namespace MealItem {
     status: Meal.Status;
     attempts: number;
     inputType: Meal.InputType;
-    inputFileKey: string;
+    inputFileKey: string | null;
     name: string;
     icon: string;
     foods: Meal.Food[];

@@ -1,4 +1,4 @@
-import { Meal, SimplifiedMeal } from '@app/types/Meal';
+import { Food, Meal, SimplifiedMeal } from '@app/types/Meal';
 import { env } from '@app/config/env';
 import { Service } from './Service';
 
@@ -31,7 +31,7 @@ export class MealsService extends Service {
       meal: {
         ...data.meal,
         createdAt: new Date(data.meal.createdAt),
-        inputFileURL: data.meal.inputFileURL.startsWith('/')
+        inputFileURL: data.meal.inputFileURL?.startsWith('/')
           ? `${env.api.url.replace(/\/$/, '')}${data.meal.inputFileURL}`
           : data.meal.inputFileURL,
       },
@@ -56,9 +56,26 @@ export class MealsService extends Service {
       mealId: data.mealId,
     };
   }
+
+  static async updateMeal(id: string, payload: MealsService.UpdateMealPayload): Promise<void> {
+    await this.client.patch(`/meals/${id}`, payload);
+  }
+
+  static async repeatMeal(id: string, payload: MealsService.UpdateMealPayload): Promise<string> {
+    const { data } = await this.client.post<{ mealId: string }>(`/meals/${id}/repeat`, payload);
+    return data.mealId;
+  }
+
+  static async deleteMeal(id: string): Promise<void> {
+    await this.client.delete(`/meals/${id}`);
+  }
 }
 
 export namespace MealsService {
+  export type UpdateMealPayload = {
+    name: string;
+    foods: Pick<Food, 'name' | 'quantity' | 'proteins' | 'carbohydrates' | 'fats'>[];
+  };
   export type GetMealsByDateResponse = {
     meals: SimplifiedMeal[];
   };

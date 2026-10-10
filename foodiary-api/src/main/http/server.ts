@@ -12,8 +12,11 @@ import { SignInController } from '@application/controllers/auth/SignInController
 import { SignUpController } from '@application/controllers/auth/SignUpController';
 import { UpdateGoalController } from '@application/controllers/goals/UpdateGoalController';
 import { CreateMealController } from '@application/controllers/meals/CreateMealController';
+import { DeleteMealController } from '@application/controllers/meals/DeleteMealController';
 import { GetMealByIdController } from '@application/controllers/meals/GetMealByIdController';
 import { ListMealsByDayController } from '@application/controllers/meals/ListMealsByDayController';
+import { RepeatMealController } from '@application/controllers/meals/RepeatMealController';
+import { UpdateMealController } from '@application/controllers/meals/UpdateMealController';
 import { UpdateProfileController } from '@application/controllers/profiles/UpdateProfileController';
 import { ApplicationError } from '@application/errors/application/ApplicationError';
 import { ErrorCode } from '@application/errors/ErrorCode';
@@ -51,6 +54,9 @@ const routes: Route[] = [
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
   { method: 'POST', path: '/meals', private: true, controller: CreateMealController },
   { method: 'GET', path: '/meals/:mealId', private: true, controller: GetMealByIdController },
+  { method: 'PATCH', path: '/meals/:mealId', private: true, controller: UpdateMealController },
+  { method: 'DELETE', path: '/meals/:mealId', private: true, controller: DeleteMealController },
+  { method: 'POST', path: '/meals/:mealId/repeat', private: true, controller: RepeatMealController },
 ];
 
 const maxBodyBytes = 1024 * 1024;
@@ -162,6 +168,10 @@ export function createHttpServer(): Server {
       const storage = new LocalMealsFileStorageGateway();
       const fileMatch = /^\/meal-files\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|m4a))$/.exec(url.pathname);
       if (request.method === 'GET' && fileMatch) {
+        if (!await new MealRepository().hasInputFile(fileMatch[1])) {
+          sendJson(response, 404, { error: { code: 'NOT_FOUND', message: 'File not found.' } });
+          return;
+        }
         const file = await storage.open(
           fileMatch[1], url.searchParams.get('expires'), url.searchParams.get('signature'),
         );
@@ -239,7 +249,8 @@ export function createHttpServer(): Server {
         const accountId = await accountIdFromRequest(request);
         const repository = new MealRepository();
         const meal = await repository.findById({ accountId, mealId: uploadMatch[1] });
-        if (!meal || meal.status !== Meal.Status.UPLOADING) {
+        if (!meal || meal.status !== Meal.Status.UPLOADING || !meal.inputFileKey
+          || meal.inputType === Meal.InputType.MANUAL) {
           sendJson(response, 404, { error: { code: 'NOT_FOUND', message: 'Pending meal not found.' } });
           return;
         }
@@ -272,8 +283,12 @@ export function createHttpServer(): Server {
       }
 
       const mealMatch = /^\/meals\/([a-zA-Z0-9]+)$/.exec(url.pathname);
+      const repeatMatch = /^\/meals\/([a-zA-Z0-9]+)\/repeat$/.exec(url.pathname);
+      const matchedMealId = mealMatch?.[1] ?? repeatMatch?.[1];
       const route = routes.find(item => item.method === request.method
-        && (item.path === url.pathname || (item.path === '/meals/:mealId' && mealMatch)));
+        && (item.path === url.pathname
+          || (item.path === '/meals/:mealId' && mealMatch)
+          || (item.path === '/meals/:mealId/repeat' && repeatMatch)));
 
       if (!route) {
         sendJson(response, 404, {
@@ -288,7 +303,7 @@ export function createHttpServer(): Server {
       const result = await controller.execute({
         accountId,
         body,
-        params: mealMatch ? { mealId: mealMatch[1] } : {},
+        params: matchedMealId ? { mealId: matchedMealId } : {},
         queryParams: Object.fromEntries(url.searchParams),
       });
 

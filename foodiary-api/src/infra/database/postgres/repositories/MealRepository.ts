@@ -8,7 +8,7 @@ type MealRow = {
   status: Meal.Status;
   attempts: number;
   input_type: Meal.InputType;
-  input_file_key: string;
+  input_file_key: string | null;
   name: string;
   icon: string;
   foods: Meal.Food[];
@@ -59,6 +59,38 @@ export class MealRepository {
         JSON.stringify(meal.foods),
       ],
     );
+  }
+
+  async updateContents({ mealId, accountId, name, foods }: {
+    mealId: string;
+    accountId: string;
+    name: string;
+    foods: Meal.Food[];
+  }): Promise<boolean> {
+    const result = await getPostgresPool().query(
+      `UPDATE meals SET name = $3, foods = $4::jsonb
+       WHERE id = $1 AND account_id = $2 AND status = $5`,
+      [mealId, accountId, name, JSON.stringify(foods), Meal.Status.SUCCESS],
+    );
+    return result.rowCount === 1;
+  }
+
+  async deleteCompleted({ mealId, accountId }: MealRepository.FindByIdParams): Promise<{ inputFileKey: string | null } | null> {
+    const { rows } = await getPostgresPool().query<{ input_file_key: string | null }>(
+      `DELETE FROM meals WHERE id = $1 AND account_id = $2 AND status = $3
+       RETURNING input_file_key`,
+      [mealId, accountId, Meal.Status.SUCCESS],
+    );
+    return rows[0] ? { inputFileKey: rows[0].input_file_key } : null;
+  }
+
+  async hasInputFile(fileKey: string): Promise<boolean> {
+    const accountId = fileKey.split('/')[0];
+    const { rowCount } = await getPostgresPool().query(
+      'SELECT 1 FROM meals WHERE account_id = $1 AND input_file_key = $2 LIMIT 1',
+      [accountId, fileKey],
+    );
+    return rowCount === 1;
   }
 
   async markUploaded(meal: Meal): Promise<boolean> {

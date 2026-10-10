@@ -34,6 +34,9 @@ export class MealsAIGateway {
   }
 
   async processMeal(meal: Meal): Promise<MealsAIGateway.ProcessMealResult> {
+    if (!meal.inputFileKey || meal.inputType === Meal.InputType.MANUAL) {
+      throw new Error('Only uploaded meals can be processed.');
+    }
     const mealFile = await this.mealsFileStorageGateway.read(meal.inputFileKey);
 
     if (meal.inputType === Meal.InputType.PICTURE) {

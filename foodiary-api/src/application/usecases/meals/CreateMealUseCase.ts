@@ -40,7 +40,7 @@ export namespace CreateMealUseCase {
   export type Input = {
     accountId: string;
     file: {
-      inputType: Meal.InputType;
+      inputType: Exclude<Meal.InputType, Meal.InputType.MANUAL>;
       size: number;
     };
   };

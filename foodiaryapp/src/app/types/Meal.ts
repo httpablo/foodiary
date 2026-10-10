@@ -9,6 +9,7 @@ export enum MealStatus {
 export enum MealInputType {
   AUDIO = 'AUDIO',
   PICTURE = 'PICTURE',
+  MANUAL = 'MANUAL',
 }
 
 export type Food = {
@@ -24,7 +25,7 @@ export type Meal = {
   id: string;
   status: MealStatus;
   inputType: MealInputType;
-  inputFileURL: string;
+  inputFileURL: string | null;
   name: string;
   icon: string;
   foods: Food[];

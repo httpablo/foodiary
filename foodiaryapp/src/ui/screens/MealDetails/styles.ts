@@ -12,4 +12,19 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray[400],
   },
+  actions: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[400],
+  },
+  action: {
+    flex: 1,
+    minHeight: 52,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
 });

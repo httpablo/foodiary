@@ -1,4 +1,5 @@
 import { AppStackNavigationProps } from '@app/navigation/AppStack';
+import { summarizeFoods } from '@app/lib/summarizeFoods';
 import { SimplifiedMeal } from '@app/types/Meal';
 import { useNavigation } from '@react-navigation/native';
 import { AppText } from '@ui/components/AppText';
@@ -20,26 +21,7 @@ export function MealCard({ meal }: IMealCardProps) {
     meal.foods.map(food => food.name).join(', ')
   ), [meal.foods]);
 
-  const summary = useMemo(() => (
-    (meal?.foods ?? []).reduce(
-      (acc, food) => {
-        const proteinsCalories = food.proteins * 4;
-        const carbohydratesCalories = food.carbohydrates * 4;
-        const fatsCalories = food.fats * 9;
-        const totalCalories = Math.round(
-          proteinsCalories + carbohydratesCalories + fatsCalories,
-        );
-
-        return {
-        calories: acc.calories + totalCalories,
-          proteins: acc.proteins + food.proteins,
-          carbohydrates: acc.carbohydrates + food.carbohydrates,
-          fats: acc.fats + food.fats,
-        };
-      },
-      { calories: 0, proteins: 0, carbohydrates: 0, fats: 0 },
-    )
-  ), [meal?.foods]);
+  const summary = useMemo(() => summarizeFoods(meal.foods), [meal.foods]);
 
   return (
     <View style={[styles.container, { opacity: isLoading ? 0.5 : 1 }]}>

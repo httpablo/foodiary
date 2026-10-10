@@ -48,7 +48,7 @@ export namespace GetMealByIdController {
       id: string;
       status: Meal.Status;
       inputType: Meal.InputType;
-      inputFileURL: string;
+      inputFileURL: string | null;
       name: string;
       icon: string;
       foods: Meal.Food[];

@@ -15,7 +15,7 @@ const maxFileBytes = 10 * 1024 * 1024;
 export class LocalMealsFileStorageGateway {
   static generateInputFileKey({ accountId, inputType }: {
     accountId: string;
-    inputType: Meal.InputType;
+    inputType: Exclude<Meal.InputType, Meal.InputType.MANUAL>;
   }): string {
     const extension = inputType === Meal.InputType.AUDIO ? 'm4a' : 'jpeg';
     return `${accountId}/${KSUID.randomSync().string}.${extension}`;

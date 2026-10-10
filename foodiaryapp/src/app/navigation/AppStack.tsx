@@ -10,11 +10,16 @@ import { Account } from '@ui/screens/Account';
 import { EditProfile } from '@ui/screens/EditProfile';
 import { Home } from '@ui/screens/Home';
 import { MealDetails } from '@ui/screens/MealDetails';
+import { EditMeal } from '@ui/screens/EditMeal';
 
 type AppStackParamList = {
   Home: undefined;
   MealDetails: {
     mealId: string;
+  };
+  EditMeal: {
+    mealId: string;
+    mode?: 'repeat';
   };
   EditGoals: undefined;
   Account: undefined;
@@ -40,6 +45,7 @@ export function AppStack() {
     >
       <Stack.Screen name="Home" component={Home} />
       <Stack.Screen name="MealDetails" component={MealDetails} />
+      <Stack.Screen name="EditMeal" component={EditMeal} />
       <Stack.Screen name="EditGoals" component={EditGoals} />
       <Stack.Screen name="Account" component={Account} />
       <Stack.Screen name="EditProfile" component={EditProfile} />

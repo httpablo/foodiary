@@ -11,7 +11,7 @@ export class Meal {
 
   readonly inputType: Meal.InputType;
 
-  readonly inputFileKey: string;
+  readonly inputFileKey: string | null;
 
   name: string;
 
@@ -41,7 +41,7 @@ export namespace Meal {
     accountId: string;
     status: Meal.Status;
     inputType: Meal.InputType;
-    inputFileKey: string;
+    inputFileKey: string | null;
     attempts?: number;
     name?: string;
     icon?: string;
@@ -61,6 +61,7 @@ export namespace Meal {
   export enum InputType {
     AUDIO = 'AUDIO',
     PICTURE = 'PICTURE',
+    MANUAL = 'MANUAL',
   }
 
   export type Food = {

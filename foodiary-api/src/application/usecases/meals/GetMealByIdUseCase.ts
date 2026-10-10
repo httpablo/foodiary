@@ -21,7 +21,9 @@ export class GetMealByIdUseCase {
       throw new ResourceNotFound('Meal not found.');
     }
 
-    const inputFileURL = this.mealsFileStorageGateway.getFileURL(meal.inputFileKey);
+    const inputFileURL = meal.inputFileKey
+      ? this.mealsFileStorageGateway.getFileURL(meal.inputFileKey)
+      : null;
 
     return {
       meal: {
@@ -49,7 +51,7 @@ export namespace GetMealByIdUseCase {
       id: string;
       status: Meal.Status;
       inputType: Meal.InputType;
-      inputFileURL: string;
+      inputFileURL: string | null;
       name: string;
       icon: string;
       foods: Meal.Food[];
