@@ -1,4 +1,4 @@
-import { Constructor } from "@shared/types/Constructor";
+import { Constructor } from '@shared/types/Constructor';
 
 export class Registry {
   private static instance: Registry | undefined;
@@ -7,6 +7,7 @@ export class Registry {
     if (!this.instance) {
       this.instance = new Registry();
     }
+
     return this.instance;
   }
 
@@ -14,13 +15,14 @@ export class Registry {
 
   private readonly providers = new Map<string, Registry.Provider>();
 
-  register(impl: Constructor) {
+  register(impl: Constructor, explicitDeps?: Constructor[]) {
     const token = impl.name;
+
     if (this.providers.has(token)) {
-      throw new Error(`Provider with token ${token} is already registered.`);
+      throw new Error(`"${token}" is already registered in the registry.`);
     }
 
-    const deps = Reflect.getMetadata("design:paramtypes", impl) ?? [];
+    const deps = explicitDeps ?? Reflect.getMetadata('design:paramtypes', impl) ?? [];
 
     this.providers.set(token, { impl, deps });
   }
@@ -30,10 +32,14 @@ export class Registry {
     const provider = this.providers.get(token);
 
     if (!provider) {
-      throw new Error(`Provider with token ${token} is not registered.`);
+      throw new Error(`"${token}" is not registered.`);
     }
 
-    const deps = provider.deps.map((dep) => this.resolve(dep));
+    if (provider.deps.length === 0 && provider.impl.length > 0) {
+      throw new Error(`Dependencies for "${token}" were not registered.`);
+    }
+
+    const deps = provider.deps.map(dep => this.resolve(dep));
     const instance = new provider.impl(...deps);
 
     return instance;

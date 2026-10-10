@@ -1,15 +1,16 @@
-import { Account } from "@application/entities/Account";
+import { Account } from '@application/entities/Account';
 
 export class AccountItem {
-  private readonly type = "account";
+  static readonly type = 'Account';
+
   private readonly keys: AccountItem.Keys;
 
-  constructor(private readonly attrs: AccountItem.Atributes) {
+  constructor(private readonly attrs: AccountItem.Attributes) {
     this.keys = {
-      PK: AccountItem.getPK(attrs.id),
-      SK: AccountItem.getSK(attrs.id),
-      GSI1PK: AccountItem.getGSI1PK(attrs.email),
-      GSI1SK: AccountItem.getGSI1SK(attrs.email),
+      PK: AccountItem.getPK(this.attrs.id),
+      SK: AccountItem.getSK(this.attrs.id),
+      GSI1PK: AccountItem.getGSI1PK(this.attrs.email),
+      GSI1SK: AccountItem.getGSI1SK(this.attrs.email),
     };
   }
 
@@ -17,41 +18,39 @@ export class AccountItem {
     return {
       ...this.keys,
       ...this.attrs,
-      type: this.type,
+      type: AccountItem.type,
     };
   }
 
   static fromEntity(account: Account) {
     return new AccountItem({
-      id: account.id,
-      email: account.email,
+      ...account,
       createdAt: account.createdAt.toISOString(),
-      ...(account.externalId ? { externalId: account.externalId } : {}),
     });
   }
 
-  static toEntity(accountItem: AccountItem.ItemType): Account {
+  static toEntity(accountItem: AccountItem.ItemType) {
     return new Account({
       id: accountItem.id,
       email: accountItem.email,
+      externalId: accountItem.externalId,
       createdAt: new Date(accountItem.createdAt),
-      ...(accountItem.externalId ? { externalId: accountItem.externalId } : {}),
     });
   }
 
-  static getPK(accountId: string): AccountItem.Keys["PK"] {
+  static getPK(accountId: string): AccountItem.Keys['PK'] {
     return `ACCOUNT#${accountId}`;
   }
 
-  static getSK(accountId: string): AccountItem.Keys["SK"] {
+  static getSK(accountId: string): AccountItem.Keys['SK'] {
     return `ACCOUNT#${accountId}`;
   }
 
-  static getGSI1PK(email: string): AccountItem.Keys["GSI1PK"] {
+  static getGSI1PK(email: string): AccountItem.Keys['GSI1PK'] {
     return `ACCOUNT#${email}`;
   }
 
-  static getGSI1SK(email: string): AccountItem.Keys["GSI1SK"] {
+  static getGSI1SK(email: string): AccountItem.Keys['GSI1SK'] {
     return `ACCOUNT#${email}`;
   }
 }
@@ -64,15 +63,14 @@ export namespace AccountItem {
     GSI1SK: `ACCOUNT#${string}`;
   };
 
-  export type Atributes = {
+  export type Attributes = {
     id: string;
     email: string;
-    externalId?: string;
+    externalId: string | undefined;
     createdAt: string;
   };
 
-  export type ItemType = Keys &
-    Atributes & {
-      type: "account";
-    };
+  export type ItemType = Keys & Attributes & {
+    type: 'Account';
+  };
 }

@@ -1,8 +1,8 @@
-import { Registry } from "@kernel/di/Registry";
-import { Constructor } from "@shared/types/Constructor";
+import { Registry } from '@kernel/di/Registry';
+import { Constructor } from '@shared/types/Constructor';
 
-export function Injectable(): ClassDecorator {
+export function Injectable(deps?: Constructor[]): ClassDecorator {
   return (target) => {
-    Registry.getInstance().register(target as unknown as Constructor);
+    Registry.getInstance().register(target as unknown as Constructor, deps);
   };
 }

@@ -2,8 +2,8 @@ Resources:
   MainTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      BillingMode: PAY_PER_REQUEST
       TableName: ${self:service}-${self:provider.stage}-MainTable
+      BillingMode: PAY_PER_REQUEST
       DeletionProtectionEnabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -24,10 +24,10 @@ Resources:
           KeyType: RANGE
       GlobalSecondaryIndexes:
         - IndexName: GSI1
+          Projection:
+            ProjectionType: ALL
           KeySchema:
             - AttributeName: GSI1PK
               KeyType: HASH
             - AttributeName: GSI1SK
               KeyType: RANGE
-          Projection:
-            ProjectionType: ALL

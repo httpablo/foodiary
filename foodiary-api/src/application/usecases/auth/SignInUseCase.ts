@@ -1,26 +1,17 @@
-import { AuthGateway } from "@infra/gateways/AuthGateway";
-import { Injectable } from "@kernel/decorators/Injectable";
+import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
+import { Injectable } from '@kernel/decorators/Injectable';
 
-@Injectable()
+@Injectable([LocalAuthGateway])
 export class SignInUseCase {
   constructor(
-    private readonly authGateway: AuthGateway,
+    private readonly authGateway: LocalAuthGateway,
   ) {}
 
   async execute({
     email,
     password,
   }: SignInUseCase.Input): Promise<SignInUseCase.Output> {
-
-    const { accessToken, refreshToken } = await this.authGateway.signIn({
-      email,
-      password,
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-    };
+    return this.authGateway.signIn({ email, password });
   }
 }
 

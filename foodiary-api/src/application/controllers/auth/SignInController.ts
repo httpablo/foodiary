@@ -1,29 +1,29 @@
-import { Controller } from "@application/contracts/Controllers";
-import { SignInUseCase } from "@application/usecases/auth/SignInUseCase";
-import { Injectable } from "@kernel/decorators/Injectable";
-import { Schema } from "@kernel/decorators/Schema";
-import { SignInBody, signInSchema } from "./schemas/SignInSchema";
+import { Controller } from '@application/contracts/Controller';
+import { SignInUseCase } from '@application/usecases/auth/SignInUseCase';
+import { Injectable } from '@kernel/decorators/Injectable';
+import { Schema } from '@kernel/decorators/Schema';
+import { SignInBody, signInSchema } from './schemas/signInSchema';
 
-@Injectable()
+@Injectable([SignInUseCase])
 @Schema(signInSchema)
-export class SignInController extends Controller<
-  "public",
-  SignInController.Response
-> {
+export class SignInController extends Controller<'public', SignInController.Response> {
   constructor(private readonly signInUseCase: SignInUseCase) {
     super();
   }
 
-  protected override async handle({
-    body,
-  }: Controller.Request<"public", SignInBody>): Promise<
-    Controller.Response<SignInController.Response>
-  > {
+  protected override async handle(
+    { body }: Controller.Request<'public', SignInBody>,
+  ): Promise<Controller.Response<SignInController.Response>> {
     const { email, password } = body;
-    const { accessToken, refreshToken } = await this.signInUseCase.execute({
+
+    const {
+      accessToken,
+      refreshToken,
+    } = await this.signInUseCase.execute({
       email,
       password,
     });
+
     return {
       statusCode: 200,
       body: {
@@ -38,5 +38,5 @@ export namespace SignInController {
   export type Response = {
     accessToken: string;
     refreshToken: string;
-  };
+  }
 }

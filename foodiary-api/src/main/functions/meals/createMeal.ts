@@ -1,8 +1,6 @@
-import "reflect-metadata";
-import { Registry } from "@kernel/di/Registry";
-import { lambdaHttpAdapter } from "@main/adapters/lambdaHttpAdapter";
-import { CreateMealController } from "@application/controllers/meal/CreateMealController";
+import 'reflect-metadata';
 
-const controller = Registry.getInstance().resolve(CreateMealController);
+import { CreateMealController } from '@application/controllers/meals/CreateMealController';
+import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 
-export const handler = lambdaHttpAdapter(controller);
+export const handler = lambdaHttpAdapter(CreateMealController);

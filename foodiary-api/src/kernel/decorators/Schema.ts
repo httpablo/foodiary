@@ -1,6 +1,6 @@
-import z from "zod";
+import { z } from 'zod';
 
-const SCHEMA_METADATA_KEY = "custom:schema";
+const SCHEMA_METADATA_KEY = 'custom:schema';
 
 export function Schema(schema: z.ZodSchema): ClassDecorator {
   return (target) => {

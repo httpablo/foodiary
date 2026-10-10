@@ -3,19 +3,19 @@ statements:
     Action:
       - dynamodb:PutItem
       - dynamodb:Query
+      - dynamodb:GetItem
+      - dynamodb:UpdateItem
     Resource:
-      - Fn::GetAtt:
-          - MainTable
-          - Arn
-      - Fn::Sub: "${MainTable.Arn}/index/*"
+      - !GetAtt MainTable.Arn
+      - !Sub '${MainTable.Arn}/index/*'
+  - Effect: Allow
+    Action: cognito-idp:AdminDeleteUser
+    Resource: !GetAtt UserPool.Arn
   - Effect: Allow
     Action:
-      - lambda:AddPermission
-      - lambda:RemovePermission
-    Resource:
-      - Fn::Sub: "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*"
+      - s3:PutObject
+      - s3:GetObject
+    Resource: !Sub '${MealsBucket.Arn}/*'
   - Effect: Allow
-    Action:
-      - cognito-idp:AdminConfirmSignUp
-    Resource:
-      - Fn::Sub: "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+    Action: sqs:SendMessage
+    Resource: !GetAtt MealsQueue.Arn

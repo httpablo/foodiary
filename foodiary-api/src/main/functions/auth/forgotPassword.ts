@@ -1,8 +1,6 @@
-import { ForgotPasswordController } from "@application/controllers/auth/ForgotPasswordController";
-import { Registry } from "@kernel/di/Registry";
-import { lambdaHttpAdapter } from "@main/adapters/lambdaHttpAdapter";
-import "reflect-metadata";
+import 'reflect-metadata';
 
-const controller = Registry.getInstance().resolve(ForgotPasswordController);
+import { ForgotPasswordController } from '@application/controllers/auth/ForgotPasswordController';
+import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 
-export const handler = lambdaHttpAdapter(controller);
+export const handler = lambdaHttpAdapter(ForgotPasswordController);

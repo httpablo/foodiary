@@ -1,74 +1,86 @@
-import { Account } from "@application/entities/Account";
-import { EmailAlreadyInUse } from "@application/errors/application/EmailAlreadyInUse";
-import { AccountRepository } from "@infra/database/dynamo/repositories/AccountRepository";
-import { AuthGateway } from "@infra/gateways/AuthGateway";
-import { Injectable } from "@kernel/decorators/Injectable";
+import { Account } from '@application/entities/Account';
+import { Goal } from '@application/entities/Goal';
+import { Profile } from '@application/entities/Profile';
+import { EmailAlreadyInUse } from '@application/errors/application/EmailAlreadyInUse';
+import { GoalCalculator } from '@application/services/GoalCalculator';
+import { AccountRepository } from '@infra/database/postgres/repositories/AccountRepository';
+import { SignUpUnitOfWork } from '@infra/database/postgres/uow/SignUpUnitOfWork';
+import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
+import { hashPassword } from '@infra/auth/password';
+import { Injectable } from '@kernel/decorators/Injectable';
 
-@Injectable()
+@Injectable([LocalAuthGateway, AccountRepository, SignUpUnitOfWork])
 export class SignUpUseCase {
   constructor(
-    private readonly authGateway: AuthGateway,
+    private readonly authGateway: LocalAuthGateway,
     private readonly accountRepository: AccountRepository,
-  ) {}
+    private readonly signUpUow: SignUpUnitOfWork,
+  ) { }
 
   async execute({
-    email,
-    password,
+    account: {
+      email,
+      password,
+    },
+    profile: profileInfo,
   }: SignUpUseCase.Input): Promise<SignUpUseCase.Output> {
-    const emailAlreadyExists = await this.accountRepository.findByEmail(email);
+    const emailAlreadyInUse = await this.accountRepository.findByEmail(email);
 
-    if (emailAlreadyExists) {
+    if (emailAlreadyInUse) {
       throw new EmailAlreadyInUse();
     }
 
     const account = new Account({ email });
-
-    const { externalId } = await this.authGateway.signUp({
-      email,
-      password,
-      internalId: account.id,
+    const profile = new Profile({
+      ...profileInfo,
+      accountId: account.id,
     });
 
-    account.externalId = externalId;
+    const {
+      calories,
+      carbohydrates,
+      fats,
+      proteins,
+    } = GoalCalculator.calculate(profile);
 
-    await this.accountRepository.create(account);
+    const goal = new Goal({
+      accountId: account.id,
+      calories,
+      carbohydrates,
+      fats,
+      proteins,
+    });
 
-    let accessToken: string;
-    let refreshToken: string;
+    const passwordHash = await hashPassword(password);
 
-    try {
-      const signInResult = await this.authGateway.signIn({
-        email,
-        password,
-      });
-      accessToken = signInResult.accessToken;
-      refreshToken = signInResult.refreshToken;
-    } catch (error) {
-      if ((error as { name?: string }).name !== "UserNotConfirmedException") {
-        throw error;
-      }
+    await this.signUpUow.run({
+      account,
+      goal,
+      profile,
+      passwordHash,
+    });
 
-      await this.authGateway.confirmUser(email);
+    const { accessToken, refreshToken } = await this.authGateway.issueTokens(account.id);
 
-      const signInResult = await this.authGateway.signIn({
-        email,
-        password,
-      });
-      accessToken = signInResult.accessToken;
-      refreshToken = signInResult.refreshToken;
-    }
-
-    return {
-      accessToken,
-      refreshToken,
-    };
+    return { accessToken, refreshToken };
   }
 }
 
 export namespace SignUpUseCase {
   export type Input = {
-    email: string;
-    password: string;
+    account: {
+      email: string;
+      password: string;
+    };
+    profile: {
+      name: string;
+      birthDate: Date;
+      gender: Profile.Gender;
+      height: number;
+      weight: number;
+      activityLevel: Profile.ActivityLevel;
+      goal: Profile.Goal;
+    };
   };
 
   export type Output = {

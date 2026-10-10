@@ -1,28 +1,30 @@
-import { Controller } from "@application/contracts/Controllers";
-import { ApplicationError } from "@application/errors/application/ApplicationError";
-import { ErrorCode } from "@application/errors/ErrorCode";
-import { HttpError } from "@application/errors/http/HttpError";
-import { lambdaBodyParser } from "@main/utils/lambdaBodyParser";
-import { lambdaErrorResponse } from "@main/utils/lambdaErrorResponse";
-import {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyEventV2WithJWTAuthorizer,
-  APIGatewayProxyResultV2,
-} from "aws-lambda";
-import { ZodError } from "zod";
+import { APIGatewayProxyEventV2, APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { ZodError } from 'zod';
+
+import { Controller } from '@application/contracts/Controller';
+import { ApplicationError } from '@application/errors/application/ApplicationError';
+import { ErrorCode } from '@application/errors/ErrorCode';
+import { HttpError } from '@application/errors/http/HttpError';
+import { Registry } from '@kernel/di/Registry';
+import { lambdaBodyParser } from '@main/utils/lambdaBodyParser';
+import { lambdaErrorResponse } from '@main/utils/lambdaErrorResponse';
+import { Constructor } from '@shared/types/Constructor';
 
 type Event = APIGatewayProxyEventV2 | APIGatewayProxyEventV2WithJWTAuthorizer;
 
-export function lambdaHttpAdapter(controller: Controller<any, unknown>) {
+export function lambdaHttpAdapter(controllerImpl: Constructor<Controller<any, unknown>>) {
   return async (event: Event): Promise<APIGatewayProxyResultV2> => {
     try {
+      const controller = Registry.getInstance().resolve(controllerImpl);
+
       const body = lambdaBodyParser(event.body);
       const params = event.pathParameters ?? {};
       const queryParams = event.queryStringParameters ?? {};
-      const accountId =
-        "authorizer" in event.requestContext
-          ? (event.requestContext.authorizer.jwt.claims.internalId as string)
-          : null;
+      const accountId = (
+        'authorizer' in event.requestContext
+          ? event.requestContext.authorizer.jwt.claims.internalId as string
+          : null
+      );
 
       const response = await controller.execute({
         body,
@@ -40,8 +42,8 @@ export function lambdaHttpAdapter(controller: Controller<any, unknown>) {
         return lambdaErrorResponse({
           statusCode: 400,
           code: ErrorCode.VALIDATION,
-          message: error.issues.map((issue) => ({
-            field: issue.path.join("."),
+          message: error.issues.map(issue => ({
+            field: issue.path.join('.'),
             error: issue.message,
           })),
         });
@@ -60,12 +62,12 @@ export function lambdaHttpAdapter(controller: Controller<any, unknown>) {
       }
 
       // eslint-disable-next-line no-console
-      console.error(error);
+      console.error('Unhandled HTTP request error:', error instanceof Error ? error.name : 'Unknown error');
 
       return lambdaErrorResponse({
         statusCode: 500,
         code: ErrorCode.INTERNAL_SERVER_ERROR,
-        message: "Internal Server Error",
+        message: 'Internal server error.',
       });
     }
   };

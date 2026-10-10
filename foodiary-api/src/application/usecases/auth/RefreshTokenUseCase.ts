@@ -1,20 +1,22 @@
-import { AuthGateway } from "@infra/gateways/AuthGateway";
-import { Injectable } from "@kernel/decorators/Injectable";
+import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
+import { Injectable } from '@kernel/decorators/Injectable';
 
-@Injectable()
+@Injectable([LocalAuthGateway])
 export class RefreshTokenUseCase {
-  constructor(private readonly authGateway: AuthGateway) {}
+  constructor(
+    private readonly authGateway: LocalAuthGateway,
+  ) {}
 
   async execute({
     refreshToken,
   }: RefreshTokenUseCase.Input): Promise<RefreshTokenUseCase.Output> {
-    const { accessToken, refreshToken: newRefreshToken } =
-      await this.authGateway.refreshToken({
-        refreshToken,
-      });
+    const {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    } = await this.authGateway.refreshToken({ refreshToken });
 
     return {
-      accessToken,
+      accessToken: newAccessToken,
       refreshToken: newRefreshToken,
     };
   }

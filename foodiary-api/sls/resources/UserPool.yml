@@ -24,30 +24,25 @@ Resources:
         PasswordPolicy:
           MinimumLength: 8
           RequireLowercase: false
-          RequireUppercase: false
           RequireNumbers: false
           RequireSymbols: false
+          RequireUppercase: false
       LambdaConfig:
-        PreSignUp: !GetAtt PreSignUpTriggerLambdaFunction.Arn
         PreTokenGenerationConfig:
-          LambdaArn: !GetAtt PreTokenGenerationTriggerLambdaFunction.Arn
+          LambdaArn: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:service}-${self:provider.stage}-preTokenGenerationTrigger'
           LambdaVersion: V2_0
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        From: ${env:COGNITO_EMAILS_FROM}
+        ReplyToEmailAddress: ${env:COGNITO_EMAILS_REPLY_TO}
+        SourceArn: ${env:SES_ARN}
 
-  PreSignUpPermission:
-    Type: AWS::Lambda::Permission
-    DependsOn: PreSignUpTriggerLambdaFunction
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref PreSignUpTriggerLambdaFunction
-      Principal: cognito-idp.amazonaws.com
-      SourceArn: !GetAtt UserPool.Arn
-
-  PreTokenGenerationPermission:
+  PreTokenGenerationLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn: PreTokenGenerationTriggerLambdaFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref PreTokenGenerationTriggerLambdaFunction
+      FunctionName: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:service}-${self:provider.stage}-preTokenGenerationTrigger'
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt UserPool.Arn
 
@@ -55,25 +50,13 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       ClientName: ${self:service}-${self:provider.stage}-UserPoolClient
-      UserPoolId:
-        Ref: UserPool
+      UserPoolId: !Ref UserPool
       GenerateSecret: true
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
       TokenValidityUnits:
         AccessToken: hours
-        RefreshToken: days
-      RefreshTokenValidity: 30
       AccessTokenValidity: 12
-
-Outputs:
-  UserPoolId:
-    Value:
-      Ref: UserPool
-    Export:
-      Name: ${self:service}-${self:provider.stage}-UserPoolId
-  UserPoolClientId:
-    Value:
-      Ref: UserPoolClient
-    Export:
-      Name: ${self:service}-${self:provider.stage}-UserPoolClientId
+      RefreshTokenRotation:
+        Feature: ENABLED
+        RetryGracePeriodSeconds: 0

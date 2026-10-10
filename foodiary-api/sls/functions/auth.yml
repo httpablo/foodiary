@@ -1,14 +1,5 @@
 signUp:
   handler: src/main/functions/auth/signUp.handler
-  environment:
-    COGNITO_USER_POOL_ID:
-      Ref: UserPool
-    COGNITO_CLIENT_ID:
-      Ref: UserPoolClient
-    COGNITO_CLIENT_SECRET:
-      Fn::GetAtt:
-        - UserPoolClient
-        - ClientSecret
   events:
     - httpApi:
         method: POST
@@ -16,15 +7,6 @@ signUp:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
-  environment:
-    COGNITO_USER_POOL_ID:
-      Ref: UserPool
-    COGNITO_CLIENT_ID:
-      Ref: UserPoolClient
-    COGNITO_CLIENT_SECRET:
-      Fn::GetAtt:
-        - UserPoolClient
-        - ClientSecret
   events:
     - httpApi:
         method: POST
@@ -44,11 +26,33 @@ forgotPassword:
         method: POST
         path: /auth/forgot-password
 
-preSignUpTrigger:
-  handler: src/main/functions/auth/preSignUp.handler
-  events: []
+confirmForgotPassword:
+  handler: src/main/functions/auth/confirmForgotPassword.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/forgot-password/confirm
 
-# The trigger is configured manually to support event v2
-# Go to UserPool.yml for the trigger configuration
+preSignUpTrigger:
+  handler: src/main/functions/auth/cognito/preSignUpTrigger.handler
+  events:
+    - cognitoUserPool:
+        pool: ${self:custom.cognito.PoolName}
+        trigger: PreSignUp
+        existing: true
+        forceDeploy: true
+
+# The trigger is configured manually to support event V2.
+# Go to UserPool.yml to see the configuration.
+# Do not change this function name without change in UserPool.yml.
 preTokenGenerationTrigger:
-  handler: src/main/functions/auth/preTokenGenerationTrigger.handler
+  handler: src/main/functions/auth/cognito/preTokenGenerationTrigger.handler
+
+customMessageTrigger:
+  handler: src/main/functions/auth/cognito/customMessageTrigger.handler
+  events:
+    - cognitoUserPool:
+        pool: ${self:custom.cognito.PoolName}
+        trigger: CustomMessage
+        existing: true
+        forceDeploy: true

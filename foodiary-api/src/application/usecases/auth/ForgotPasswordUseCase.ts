@@ -1,16 +1,16 @@
-import { AuthGateway } from "@infra/gateways/AuthGateway";
-import { Injectable } from "@kernel/decorators/Injectable";
+import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
+import { Injectable } from '@kernel/decorators/Injectable';
 
-@Injectable()
+@Injectable([LocalAuthGateway])
 export class ForgotPasswordUseCase {
-  constructor(private readonly authGateway: AuthGateway) {}
+  constructor(
+    private readonly authGateway: LocalAuthGateway,
+  ) {}
 
   async execute({
     email,
   }: ForgotPasswordUseCase.Input): Promise<ForgotPasswordUseCase.Output> {
-    await this.authGateway.forgotPassword({
-      email,
-    });
+    await this.authGateway.forgotPassword({ email });
   }
 }
 

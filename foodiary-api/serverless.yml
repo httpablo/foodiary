@@ -1,4 +1,3 @@
-# org: httpablo
 service: foodiary-api
 
 provider:
@@ -7,16 +6,16 @@ provider:
   runtime: nodejs22.x
   memorySize: 128
   stage: ${opt:stage, 'dev'}
-  environment:
-    MAIN_TABLE_NAME:
-      Ref: MainTable
+  environment: ${file(./sls/config/env.yml)}
   iam:
     role: ${file(./sls/config/role.yml)}
   httpApi:
+    disableDefaultEndpoint: ${env:DISABLE_DEFAULT_APIGW_ENDPOINT, false}
     authorizers:
       CognitoAuthorizer:
+        type: jwt
         identitySource: $request.header.Authorization
-        issuerUrl: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+        issuerUrl: !GetAtt UserPool.ProviderURL
         audience:
           - !Ref UserPoolClient
 
@@ -34,7 +33,15 @@ build:
 functions:
   - ${file(./sls/functions/auth.yml)}
   - ${file(./sls/functions/meals.yml)}
+  - ${file(./sls/functions/accounts.yml)}
+  - ${file(./sls/functions/profiles.yml)}
+  - ${file(./sls/functions/goals.yml)}
 
 resources:
   - ${file(./sls/resources/UserPool.yml)}
   - ${file(./sls/resources/MainTable.yml)}
+  - ${file(./sls/resources/APIGWCustomDomain.yml)}
+  - ${file(./sls/resources/MealsBucket.yml)}
+  - ${file(./sls/resources/MealsBucketCDN.yml)}
+  - ${file(./sls/resources/MealsQueue.yml)}
+  - ${file(./sls/resources/DLQAlarmsTopic.yml)}
