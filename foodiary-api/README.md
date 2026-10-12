@@ -31,7 +31,12 @@ Para acessar a API por um celular na mesma rede, use o IP local do computador em
 | GET | `/profile-photos/:accountId/:filename` | Assinatura temporária na URL |
 | PUT | `/goals` | Bearer token |
 | GET | `/meals?date=YYYY-MM-DD` | Bearer token |
+| GET | `/meals/weekly-summary?startDate=YYYY-MM-DD&timezoneOffsetMinutes=180` | Bearer token; início da semana na segunda-feira |
 | POST | `/meals` | Bearer token |
+| POST | `/meals/manual` | Bearer token; nome, alimentos, data local e deslocamento de fuso |
+| GET | `/saved-foods` | Bearer token; alimentos salvos da conta |
+| PUT | `/saved-foods` | Bearer token; salva ou atualiza nome, quantidade e nutrientes |
+| DELETE | `/saved-foods/:foodId` | Bearer token; remove alimento salvo da conta |
 | POST | `/meal-uploads/:mealId` | Bearer token |
 | GET | `/meals/:mealId` | Bearer token |
 | PATCH | `/meals/:mealId` | Bearer token; corrige nome e alimentos de refeição concluída |
@@ -42,6 +47,10 @@ Para acessar a API por um celular na mesma rede, use o IP local do computador em
 Após o upload, a refeição fica em `QUEUED`. Com `OPENAI_API_KEY` configurada, o servidor local inicia um worker que busca trabalhos no PostgreSQL, processa um por vez, tenta novamente após 30 segundos em caso de falha e marca `FAILED` após duas tentativas. Trabalhos interrompidos há mais de 15 minutos voltam à fila. Os códigos de recuperação de senha aparecem no terminal **apenas em desenvolvimento**. Não há entrega de e-mail configurada para produção. Os detalhes do banco e das migrações estão em [db/README.md](db/README.md).
 
 Na listagem de refeições, o app envia `timezoneOffsetMinutes` com a data para consultar o dia local do celular. Sem esse parâmetro, a API usa UTC.
+
+O resumo semanal usa o mesmo deslocamento de fuso. Dias sem refeições têm `totals: null`; dias com refeições de valor zero têm totais numéricos iguais a zero. As médias consideram apenas dias com registros e são comparadas no app com as metas atuais.
+
+Refeições manuais são criadas como concluídas, sem upload e sem chamada à OpenAI. A data informada deve ser hoje ou anterior no fuso enviado. Alimentos salvos pertencem à conta e podem ser reutilizados em novas refeições; salvar novamente o mesmo nome e quantidade atualiza os nutrientes.
 
 ## Verificação
 

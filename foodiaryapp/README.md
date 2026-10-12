@@ -11,4 +11,8 @@ Use `http://10.0.2.2:3005` para o emulador Android. Para o navegador ou um simul
 
 A API usa PostgreSQL e arquivos locais. O processamento das refeições requer `OPENAI_API_KEY` apenas no `.env` da API. Não coloque essa chave no app.
 
+Na tela inicial, **Ver resumo semanal** mostra calorias e nutrientes por dia, a média dos dias registrados e a comparação com as metas atuais. Semanas anteriores podem ser consultadas pelas setas; dias sem refeições aparecem como sem registro.
+
+Em **Cadastrar sua refeição**, escolha **Cadastrar manualmente** para registrar alimentos no dia selecionado sem usar a OpenAI. No formulário, você pode salvar alimentos frequentes e reutilizá-los em outras refeições. O banco local precisa ter recebido `005_manual_meals.sql` e `006_saved_foods.sql`.
+
 Os tokens de login ficam no SecureStore do aparelho. Na primeira abertura após a atualização, o app migra automaticamente uma sessão antiga salva no AsyncStorage.

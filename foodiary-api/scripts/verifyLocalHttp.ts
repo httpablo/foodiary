@@ -167,6 +167,20 @@ async function main() {
     });
     assert.equal(meals.status, 200);
     assert.deepEqual((await meals.json()).meals, []);
+    const weekPath = '/meals/weekly-summary?startDate=2026-10-05&timezoneOffsetMinutes=180';
+    assert.equal((await request(weekPath)).status, 401);
+    assert.equal((await request('/meals/weekly-summary?startDate=2026-10-06', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 400);
+    const emptyWeek = await request(weekPath, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(emptyWeek.status, 200);
+    const emptySummary = await emptyWeek.json();
+    assert.equal(emptySummary.recordedDays, 0);
+    assert.equal(emptySummary.averages, null);
+    assert.equal(emptySummary.days.length, 7);
+    assert.equal(emptySummary.days[0].totals, null);
 
     const picture = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x01, 0xff, 0xd9]);
     const created = await request('/meals', json('POST', {
@@ -257,6 +271,86 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     assert.equal((await utcDay.json()).meals.length, 0);
+    const ownerId = (await pool.query<{ id: string }>('SELECT id FROM accounts WHERE email = $1', [email])).rows[0].id;
+    await pool.query(
+      `INSERT INTO meals (id, account_id, status, input_type, input_file_key, name, foods, created_at)
+       VALUES ($1, $2, 'SUCCESS', 'MANUAL', NULL, 'Zero', $3::jsonb, $4)`,
+      [`${mealId}zero`, ownerId, JSON.stringify([{ name: 'Zero', quantity: '1', calories: 0, proteins: 0, carbohydrates: 0, fats: 0 }]), new Date('2026-10-10T12:00:00.000Z')],
+    );
+    const week = await request(weekPath, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(week.status, 200);
+    const summary = await week.json();
+    assert.equal(summary.recordedDays, 2);
+    assert.equal(summary.days.find((day: { date: string }) => day.date === '2026-10-09').totals.calories, 133);
+    assert.equal(summary.days.find((day: { date: string }) => day.date === '2026-10-10').totals.calories, 0);
+    assert.equal(summary.days.find((day: { date: string }) => day.date === '2026-10-08').totals, null);
+    assert.equal(summary.averages.calories, 67);
+    const otherWeek = await request(weekPath, {
+      headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    });
+    assert.equal((await otherWeek.json()).recordedDays, 0);
+    const manualPayload = {
+      date: '2025-01-15', timezoneOffsetMinutes: 180,
+      name: 'Lanche manual',
+      foods: [{ name: 'Banana', quantity: '1 unidade', proteins: 1, carbohydrates: 22, fats: 0.2 }],
+    };
+    assert.equal((await request('/meals/manual', json('POST', manualPayload))).status, 401);
+    assert.equal((await request('/meals/manual', json('POST', {
+      ...manualPayload, date: '2099-01-01',
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/meals/manual', json('POST', {
+      ...manualPayload, foods: [{ ...manualPayload.foods[0], fats: -1 }],
+    }, signupTokens.accessToken))).status, 400);
+    const manualResponse = await request('/meals/manual', json('POST', manualPayload, signupTokens.accessToken));
+    assert.equal(manualResponse.status, 201, await manualResponse.clone().text());
+    const { mealId: manualId } = await manualResponse.json();
+    const manualDetail = await request(`/meals/${manualId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    const manualMeal = (await manualDetail.json()).meal;
+    assert.equal(manualMeal.inputType, 'MANUAL');
+    assert.equal(manualMeal.status, 'SUCCESS');
+    assert.equal(manualMeal.inputFileURL, null);
+    assert.equal(manualMeal.foods[0].calories, 94);
+    const manualDay = await request('/meals?date=2025-01-15&timezoneOffsetMinutes=180', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal((await manualDay.json()).meals.some((item: { id: string }) => item.id === manualId), true);
+    const otherManualDay = await request('/meals?date=2025-01-15&timezoneOffsetMinutes=180', {
+      headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    });
+    assert.equal((await otherManualDay.json()).meals.length, 0);
+
+    assert.equal((await request('/saved-foods')).status, 401);
+    const savedFood = manualPayload.foods[0];
+    const saveFood = await request('/saved-foods', json('PUT', savedFood, signupTokens.accessToken));
+    assert.equal(saveFood.status, 200, await saveFood.clone().text());
+    const { id: savedFoodId } = await saveFood.json();
+    const replaceFood = await request('/saved-foods', json('PUT', {
+      ...savedFood, proteins: 2,
+    }, signupTokens.accessToken));
+    assert.equal((await replaceFood.json()).id, savedFoodId);
+    const savedList = await request('/saved-foods', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    const savedFoods = (await savedList.json()).foods;
+    assert.equal(savedFoods.length, 1);
+    assert.equal(savedFoods[0].proteins, 2);
+    const otherSavedList = await request('/saved-foods', {
+      headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    });
+    assert.deepEqual((await otherSavedList.json()).foods, []);
+    assert.equal((await request(`/saved-foods/${savedFoodId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    })).status, 404);
+    assert.equal((await request(`/saved-foods/${savedFoodId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.deepEqual((await (await request('/saved-foods', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).json()).foods, []);
     const repeatedResponse = await request(`/meals/${mealId}/repeat`, json('POST', {
       name: 'Almoço de hoje',
       foods: [{ name: 'Arroz', quantity: '150 g', proteins: 4.5, carbohydrates: 42, fats: 1.5 }],
@@ -307,7 +401,7 @@ async function main() {
     })).status, 404);
 
     // eslint-disable-next-line no-console
-    console.log('Local HTTP routes, authentication, meal upload, repeat, profile photo, and signed file access: OK');
+    console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
     await pool.query('DELETE FROM accounts WHERE email = $1', [otherEmail]);
