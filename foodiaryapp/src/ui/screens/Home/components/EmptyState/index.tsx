@@ -7,7 +7,7 @@ import { useHomeContext } from '../../context/useHomeContext';
 import { styles } from './styles';
 
 export function EmptyState() {
-  const { isLoading } = useHomeContext();
+  const { isLoading, date } = useHomeContext();
 
   return (
     <View style={[styles.container, { opacity: isLoading ? 0.5 : 1 }]}>
@@ -15,7 +15,7 @@ export function EmptyState() {
         Cadastre sua primeira refeição através de uma das opções abaixo:
       </AppText>
 
-      <CreateMealOptions disabled={isLoading} />
+      <CreateMealOptions date={date} disabled={isLoading} />
     </View>
   );
 }

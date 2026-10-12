@@ -62,7 +62,7 @@ export function Home() {
         />
       </HomeProvider>
 
-      {meals.length > 0 && <Fab />}
+      {meals.length > 0 && <Fab date={date} />}
     </View>
   );
 }

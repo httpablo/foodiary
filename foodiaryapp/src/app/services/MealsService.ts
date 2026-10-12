@@ -1,8 +1,16 @@
 import { Food, Meal, SimplifiedMeal } from '@app/types/Meal';
 import { env } from '@app/config/env';
+import { WeeklySummary } from '@app/types/WeeklySummary';
 import { Service } from './Service';
 
 export class MealsService extends Service {
+  static async getWeeklySummary(startDate: string, timezoneOffsetMinutes: number): Promise<WeeklySummary> {
+    const { data } = await this.client.get<WeeklySummary>('/meals/weekly-summary', {
+      params: { startDate, timezoneOffsetMinutes },
+    });
+    return data;
+  }
+
   static async getMealsByDate(date: string, timezoneOffsetMinutes: number): Promise<MealsService.GetMealsByDateResponse> {
     const { data } = await this.client.get<MealsService.GetMealsByDateResponse>(
       '/meals',
@@ -61,6 +69,11 @@ export class MealsService extends Service {
     await this.client.patch(`/meals/${id}`, payload);
   }
 
+  static async createManualMeal(payload: MealsService.CreateManualMealPayload): Promise<string> {
+    const { data } = await this.client.post<{ mealId: string }>('/meals/manual', payload);
+    return data.mealId;
+  }
+
   static async repeatMeal(id: string, payload: MealsService.UpdateMealPayload): Promise<string> {
     const { data } = await this.client.post<{ mealId: string }>(`/meals/${id}/repeat`, payload);
     return data.mealId;
@@ -75,6 +88,10 @@ export namespace MealsService {
   export type UpdateMealPayload = {
     name: string;
     foods: Pick<Food, 'name' | 'quantity' | 'proteins' | 'carbohydrates' | 'fats'>[];
+  };
+  export type CreateManualMealPayload = UpdateMealPayload & {
+    date: string;
+    timezoneOffsetMinutes: number;
   };
   export type GetMealsByDateResponse = {
     meals: SimplifiedMeal[];

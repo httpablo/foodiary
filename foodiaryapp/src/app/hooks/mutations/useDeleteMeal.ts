@@ -7,7 +7,10 @@ export function useDeleteMeal(mealId: string) {
     mutationFn: () => MealsService.deleteMeal(mealId),
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: ['meal', mealId] });
-      await queryClient.invalidateQueries({ queryKey: ['meals'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['meals'] }),
+        queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
+      ]);
     },
   });
   return { deleteMeal: mutateAsync, isLoading: isPending };

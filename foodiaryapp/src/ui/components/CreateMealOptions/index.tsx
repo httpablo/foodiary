@@ -1,18 +1,23 @@
+import { AppStackNavigationProps } from '@app/navigation/AppStack';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '@ui/styles/theme';
-import { CameraIcon, LucideIcon, MicIcon } from 'lucide-react-native';
+import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
+import { CameraIcon, LucideIcon, MicIcon, PencilIcon } from 'lucide-react-native';
 import { useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Alert, Platform, Pressable, View } from 'react-native';
 import { AppText } from '../AppText';
 import { AudioModal } from '../AudioModal';
 import { PictureModal } from '../PictureModal';
 import { styles } from './styles';
 
 interface ICreateMealOptionsProps {
+  date: Date;
   disabled?: boolean;
   onCreate?: () => void;
 }
 
-export function CreateMealOptions({ disabled = false, onCreate }: ICreateMealOptionsProps) {
+export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateMealOptionsProps) {
+  const { navigate } = useNavigation<AppStackNavigationProps>();
   const [
     currentVisibleModal,
     setCurrentVisibleModal,
@@ -24,6 +29,19 @@ export function CreateMealOptions({ disabled = false, onCreate }: ICreateMealOpt
 
   function handleCloseModal() {
     setCurrentVisibleModal(null);
+  }
+
+  function handleManualMeal() {
+    if (formatDateToAPI(date) > formatDateToAPI(new Date())) {
+      Alert.alert('Escolha outra data', 'Não é possível cadastrar uma refeição em um dia futuro.');
+      return;
+    }
+    onCreate?.();
+    navigate('EditMeal', {
+      mode: 'create',
+      date: formatDateToAPI(date),
+      timezoneOffsetMinutes: date.getTimezoneOffset(),
+    });
   }
 
   return (
@@ -39,17 +57,26 @@ export function CreateMealOptions({ disabled = false, onCreate }: ICreateMealOpt
         onCreate={onCreate}
       />
 
+      <View style={styles.mediaOptions}>
+        <OptionButton
+          icon={MicIcon}
+          label="Áudio"
+          disabled={disabled}
+          onPress={() => handleOpenModal('audio')}
+        />
+        <OptionButton
+          icon={CameraIcon}
+          label="Foto"
+          disabled={disabled}
+          onPress={() => handleOpenModal('picture')}
+        />
+      </View>
       <OptionButton
-        icon={MicIcon}
-        label="Áudio"
+        icon={PencilIcon}
+        label="Cadastrar manualmente"
         disabled={disabled}
-        onPress={() => handleOpenModal('audio')}
-      />
-      <OptionButton
-        icon={CameraIcon}
-        label="Foto"
-        disabled={disabled}
-        onPress={() => handleOpenModal('picture')}
+        onPress={handleManualMeal}
+        horizontal
       />
     </View>
   );
@@ -60,17 +87,19 @@ interface IOptionButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  horizontal?: boolean;
 }
 
-export function OptionButton({ icon: Icon, label, disabled, onPress }: IOptionButtonProps) {
+export function OptionButton({ icon: Icon, label, disabled, onPress, horizontal = false }: IOptionButtonProps) {
   return (
-    <View style={styles.buttonWrapper}>
+    <View style={[styles.buttonWrapper, horizontal && styles.buttonWrapperHorizontal]}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
         android_ripple={{ color: 'rgba(0, 0, 0, 0.1)', foreground: true }}
         style={({ pressed }) => [
           styles.button,
+          horizontal && styles.buttonHorizontal,
           (disabled || (pressed && Platform.OS === 'ios')) && { opacity: 0.5 },
         ]}
       >

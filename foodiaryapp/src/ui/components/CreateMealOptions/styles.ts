@@ -3,6 +3,9 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
+    gap: 12,
+  },
+  mediaOptions: {
     flexDirection: 'row',
     gap: 16,
   },
@@ -11,6 +14,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
+  buttonWrapperHorizontal: { flex: 0, width: '100%' },
   button: {
     borderWidth: 1,
     borderColor: theme.colors.gray[300],
@@ -19,6 +23,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
+  },
+  buttonHorizontal: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 14,
   },
   icon: {
     width: 48,

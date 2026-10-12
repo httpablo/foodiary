@@ -52,6 +52,7 @@ export function useAudioModalController({
       memoizedOnClose.current();
       memoizedOnCreate.current?.();
       queryClient.invalidateQueries({ queryKey: ['meals'] });
+      queryClient.invalidateQueries({ queryKey: ['weeklySummary'] });
       navigate('MealDetails', { mealId: meal.id });
     }
   }, [meal?.status, meal?.id, navigate, queryClient]);

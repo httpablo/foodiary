@@ -17,6 +17,17 @@ export const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 20,
   },
+  weeklyLink: {
+    marginHorizontal: 12,
+    marginTop: 20,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: theme.colors.lime['700/10'],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   mealsLabel: {
     letterSpacing: 1.28,
     paddingHorizontal: 12,

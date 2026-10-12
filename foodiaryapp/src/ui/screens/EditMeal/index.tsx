@@ -1,9 +1,12 @@
+import { useCreateManualMeal } from '@app/hooks/mutations/useCreateManualMeal';
+import { useSaveFood } from '@app/hooks/mutations/useSaveFood';
 import { useUpdateMeal } from '@app/hooks/mutations/useUpdateMeal';
 import { useRepeatMeal } from '@app/hooks/mutations/useRepeatMeal';
 import { useMeal } from '@app/hooks/queries/useMeal';
 import { AppStackNavigationProps, AppStackRouteProps } from '@app/navigation/AppStack';
 import { MealsService } from '@app/services/MealsService';
 import { MealStatus } from '@app/types/Meal';
+import { SavedFood } from '@app/types/SavedFood';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppHeader } from '@ui/components/AppHeader';
 import { AppText } from '@ui/components/AppText';
@@ -14,6 +17,7 @@ import { theme } from '@ui/styles/theme';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SavedFoodsPicker } from './SavedFoodsPicker';
 import { styles } from './styles';
 
 type FoodDraft = {
@@ -38,20 +42,38 @@ function parseNutrient(value: string): number | null {
   return Number.isFinite(number) && number <= 10000 ? number : null;
 }
 
+function parseFood(food: FoodDraft): MealsService.UpdateMealPayload['foods'][number] | null {
+  const name = food.name.trim();
+  const quantity = food.quantity.trim();
+  const proteins = parseNutrient(food.proteins);
+  const carbohydrates = parseNutrient(food.carbohydrates);
+  const fats = parseNutrient(food.fats);
+  if (!name || name.length > 120 || !quantity || quantity.length > 80
+    || proteins === null || carbohydrates === null || fats === null) {
+    return null;
+  }
+  return { name, quantity, proteins, carbohydrates, fats };
+}
+
 export function EditMeal() {
   const { params } = useRoute<AppStackRouteProps<'EditMeal'>>();
   const { goBack, reset } = useNavigation<AppStackNavigationProps>();
+  const isCreating = params.mode === 'create';
   const isRepeating = params.mode === 'repeat';
-  const title = isRepeating ? 'Repetir refeição' : 'Corrigir refeição';
+  const mealId = 'mealId' in params ? params.mealId : undefined;
+  const title = isCreating ? 'Nova refeição' : isRepeating ? 'Repetir refeição' : 'Corrigir refeição';
   const { top, bottom } = useSafeAreaInsets();
-  const { meal, isLoading } = useMeal(params.mealId);
-  const { updateMeal, isLoading: isUpdating } = useUpdateMeal(params.mealId);
-  const { repeatMeal, isLoading: isRepeatingMeal } = useRepeatMeal(params.mealId);
-  const isSaving = isUpdating || isRepeatingMeal;
+  const { meal, isLoading } = useMeal(mealId);
+  const { updateMeal, isLoading: isUpdating } = useUpdateMeal(mealId);
+  const { repeatMeal, isLoading: isRepeatingMeal } = useRepeatMeal(mealId);
+  const { createManualMeal, isLoading: isCreatingMeal } = useCreateManualMeal();
+  const { saveFood, isSavingFood } = useSaveFood();
+  const isSaving = isUpdating || isRepeatingMeal || isCreatingMeal;
   const [name, setName] = useState('');
-  const [foods, setFoods] = useState<FoodDraft[]>([]);
+  const [foods, setFoods] = useState<FoodDraft[]>(isCreating ? [emptyFood(0)] : []);
+  const [showSavedFoods, setShowSavedFoods] = useState(false);
   const initializedMealId = useRef<string | null>(null);
-  const nextFoodId = useRef(0);
+  const nextFoodId = useRef(isCreating ? 1 : 0);
 
   useEffect(() => {
     if (meal && initializedMealId.current !== meal.id) {
@@ -74,6 +96,42 @@ export function EditMeal() {
     )));
   }
 
+  function addSavedFood(food: SavedFood) {
+    if (foods.length >= 50) {
+      Alert.alert('Limite de alimentos', 'Uma refeição pode ter até 50 alimentos.');
+      return;
+    }
+    const draft = {
+      id: nextFoodId.current++,
+      name: food.name,
+      quantity: food.quantity,
+      proteins: String(food.proteins),
+      carbohydrates: String(food.carbohydrates),
+      fats: String(food.fats),
+    };
+    setFoods(current => (
+      isCreating && current.length === 1
+        && !current[0].name.trim() && !current[0].quantity.trim()
+        && !current[0].proteins.trim() && !current[0].carbohydrates.trim() && !current[0].fats.trim()
+        ? [draft] : [...current, draft]
+    ));
+    setShowSavedFoods(false);
+  }
+
+  async function saveDraftFood(food: FoodDraft) {
+    const parsed = parseFood(food);
+    if (!parsed) {
+      Alert.alert('Confira o alimento', 'Preencha nome, quantidade e nutrientes antes de salvar.');
+      return;
+    }
+    try {
+      await saveFood(parsed);
+      Alert.alert('Alimento salvo', 'Você pode reutilizá-lo em outras refeições.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível salvar o alimento.');
+    }
+  }
+
   async function save() {
     if (!name.trim() || name.trim().length > 120) {
       Alert.alert('Confira a refeição', 'Informe um nome com até 120 caracteres.');
@@ -85,17 +143,12 @@ export function EditMeal() {
     }
     const parsedFoods: MealsService.UpdateMealPayload['foods'] = [];
     for (const food of foods) {
-      const foodName = food.name.trim();
-      const quantity = food.quantity.trim();
-      const proteins = parseNutrient(food.proteins);
-      const carbohydrates = parseNutrient(food.carbohydrates);
-      const fats = parseNutrient(food.fats);
-      if (!foodName || foodName.length > 120 || !quantity || quantity.length > 80
-        || proteins === null || carbohydrates === null || fats === null) {
+      const parsed = parseFood(food);
+      if (!parsed) {
         Alert.alert('Confira os alimentos', 'Preencha nome, quantidade e nutrientes de cada alimento. Use valores entre 0 e 10000, com até duas casas decimais.');
         return;
       }
-      parsedFoods.push({ name: foodName, quantity, proteins, carbohydrates, fats });
+      parsedFoods.push(parsed);
     }
 
     try {
@@ -103,7 +156,10 @@ export function EditMeal() {
         name: name.trim(),
         foods: parsedFoods,
       };
-      if (isRepeating) {
+      if (isCreating) {
+        await createManualMeal({ ...payload, date: params.date, timezoneOffsetMinutes: params.timezoneOffsetMinutes });
+        goBack();
+      } else if (isRepeating) {
         const mealId = await repeatMeal(payload);
         reset({
           index: 1,
@@ -114,13 +170,13 @@ export function EditMeal() {
         goBack();
       }
     } catch {
-      Alert.alert('Erro', isRepeating
-        ? 'Não foi possível repetir a refeição.'
-        : 'Não foi possível salvar a refeição.');
+      Alert.alert('Erro', isCreating
+        ? 'Não foi possível cadastrar a refeição.'
+        : isRepeating ? 'Não foi possível repetir a refeição.' : 'Não foi possível salvar a refeição.');
     }
   }
 
-  if (!meal && !isLoading) {
+  if (!isCreating && !meal && !isLoading) {
     return (
       <View style={[styles.container, { paddingTop: top }]}>
         <AppHeader title={title} />
@@ -129,7 +185,7 @@ export function EditMeal() {
     );
   }
 
-  if (!meal) {
+  if (!isCreating && !meal) {
     return (
       <View style={[styles.container, { paddingTop: top }]}>
         <AppHeader title={title} />
@@ -147,10 +203,17 @@ export function EditMeal() {
             <Input value={name} onChangeText={setName} maxLength={120} placeholder="Ex.: Almoço" />
           </FormGroup>
           <AppText color={theme.colors.gray[700]}>
-            {isRepeating
+            {isCreating
+              ? `Adicione os alimentos consumidos em ${params.date.split('-').reverse().join('/')}. As calorias são calculadas a partir dos nutrientes.`
+              : isRepeating
               ? 'Revise os alimentos e as quantidades antes de adicionar esta refeição a hoje. As calorias são calculadas a partir dos nutrientes.'
               : 'As calorias são calculadas a partir das proteínas, carboidratos e gorduras.'}
           </AppText>
+
+          <Button variant="secondary" onPress={() => setShowSavedFoods(value => !value)}>
+            {showSavedFoods ? 'Ocultar alimentos salvos' : 'Usar alimento salvo'}
+          </Button>
+          {showSavedFoods && <SavedFoodsPicker onSelect={addSavedFood} disabled={isSaving} />}
 
           {foods.map((food, index) => (
             <View key={food.id} style={styles.foodCard}>
@@ -189,6 +252,9 @@ export function EditMeal() {
                   </FormGroup>
                 </View>
               </View>
+              <Button variant="ghost" onPress={() => saveDraftFood(food)} disabled={isSaving || isSavingFood}>
+                <AppText color={theme.colors.lime[900]} weight="medium">Salvar alimento para reutilizar</AppText>
+              </Button>
             </View>
           ))}
           <Button variant="secondary" onPress={() => setFoods(current => [...current, emptyFood(nextFoodId.current++)])} disabled={foods.length >= 50 || isSaving}>
@@ -196,8 +262,8 @@ export function EditMeal() {
           </Button>
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: Math.max(bottom, 16) }]}>
-          <Button onPress={save} isLoading={isSaving} disabled={meal?.status !== MealStatus.SUCCESS || !initializedMealId.current}>
-            {isRepeating ? 'Adicionar a hoje' : 'Salvar alterações'}
+          <Button onPress={save} isLoading={isSaving} disabled={!isCreating && (meal?.status !== MealStatus.SUCCESS || !initializedMealId.current)}>
+            {isCreating ? 'Cadastrar refeição' : isRepeating ? 'Adicionar a hoje' : 'Salvar alterações'}
           </Button>
         </View>
       </KeyboardAvoidingView>

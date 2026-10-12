@@ -11,6 +11,7 @@ import { EditProfile } from '@ui/screens/EditProfile';
 import { Home } from '@ui/screens/Home';
 import { MealDetails } from '@ui/screens/MealDetails';
 import { EditMeal } from '@ui/screens/EditMeal';
+import { WeeklySummaryScreen } from '@ui/screens/WeeklySummary';
 
 type AppStackParamList = {
   Home: undefined;
@@ -20,10 +21,15 @@ type AppStackParamList = {
   EditMeal: {
     mealId: string;
     mode?: 'repeat';
+  } | {
+    mode: 'create';
+    date: string;
+    timezoneOffsetMinutes: number;
   };
   EditGoals: undefined;
   Account: undefined;
   EditProfile: undefined;
+  WeeklySummary: undefined;
 };
 
 export type AppStackNavigationProps = NativeStackNavigationProp<AppStackParamList>;
@@ -49,6 +55,7 @@ export function AppStack() {
       <Stack.Screen name="EditGoals" component={EditGoals} />
       <Stack.Screen name="Account" component={Account} />
       <Stack.Screen name="EditProfile" component={EditProfile} />
+      <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
     </Stack.Navigator>
   );
 }

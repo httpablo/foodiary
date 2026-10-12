@@ -12,7 +12,7 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './styles';
 
-export function Fab() {
+export function Fab({ date }: { date: Date }) {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const { bottom } = useSafeAreaInsets();
 
@@ -43,6 +43,7 @@ export function Fab() {
           </AppText>
 
           <CreateMealOptions
+            date={date}
             onCreate={() => bottomSheetModalRef.current?.dismiss()}
           />
         </BottomSheetView>
