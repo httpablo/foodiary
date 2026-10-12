@@ -12,12 +12,17 @@ import { SignInController } from '@application/controllers/auth/SignInController
 import { SignUpController } from '@application/controllers/auth/SignUpController';
 import { UpdateGoalController } from '@application/controllers/goals/UpdateGoalController';
 import { CreateMealController } from '@application/controllers/meals/CreateMealController';
+import { CreateManualMealController } from '@application/controllers/meals/CreateManualMealController';
 import { DeleteMealController } from '@application/controllers/meals/DeleteMealController';
 import { GetMealByIdController } from '@application/controllers/meals/GetMealByIdController';
+import { GetWeeklySummaryController } from '@application/controllers/meals/GetWeeklySummaryController';
 import { ListMealsByDayController } from '@application/controllers/meals/ListMealsByDayController';
 import { RepeatMealController } from '@application/controllers/meals/RepeatMealController';
 import { UpdateMealController } from '@application/controllers/meals/UpdateMealController';
 import { UpdateProfileController } from '@application/controllers/profiles/UpdateProfileController';
+import { DeleteSavedFoodController } from '@application/controllers/savedFoods/DeleteSavedFoodController';
+import { ListSavedFoodsController } from '@application/controllers/savedFoods/ListSavedFoodsController';
+import { SaveFoodController } from '@application/controllers/savedFoods/SaveFoodController';
 import { ApplicationError } from '@application/errors/application/ApplicationError';
 import { ErrorCode } from '@application/errors/ErrorCode';
 import { BadRequest } from '@application/errors/http/BadRequest';
@@ -52,7 +57,12 @@ const routes: Route[] = [
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
+  { method: 'GET', path: '/meals/weekly-summary', private: true, controller: GetWeeklySummaryController },
+  { method: 'POST', path: '/meals/manual', private: true, controller: CreateManualMealController },
   { method: 'POST', path: '/meals', private: true, controller: CreateMealController },
+  { method: 'GET', path: '/saved-foods', private: true, controller: ListSavedFoodsController },
+  { method: 'PUT', path: '/saved-foods', private: true, controller: SaveFoodController },
+  { method: 'DELETE', path: '/saved-foods/:foodId', private: true, controller: DeleteSavedFoodController },
   { method: 'GET', path: '/meals/:mealId', private: true, controller: GetMealByIdController },
   { method: 'PATCH', path: '/meals/:mealId', private: true, controller: UpdateMealController },
   { method: 'DELETE', path: '/meals/:mealId', private: true, controller: DeleteMealController },
@@ -284,11 +294,13 @@ export function createHttpServer(): Server {
 
       const mealMatch = /^\/meals\/([a-zA-Z0-9]+)$/.exec(url.pathname);
       const repeatMatch = /^\/meals\/([a-zA-Z0-9]+)\/repeat$/.exec(url.pathname);
+      const savedFoodMatch = /^\/saved-foods\/([a-zA-Z0-9]+)$/.exec(url.pathname);
       const matchedMealId = mealMatch?.[1] ?? repeatMatch?.[1];
       const route = routes.find(item => item.method === request.method
         && (item.path === url.pathname
           || (item.path === '/meals/:mealId' && mealMatch)
-          || (item.path === '/meals/:mealId/repeat' && repeatMatch)));
+          || (item.path === '/meals/:mealId/repeat' && repeatMatch)
+          || (item.path === '/saved-foods/:foodId' && savedFoodMatch)));
 
       if (!route) {
         sendJson(response, 404, {
@@ -303,7 +315,7 @@ export function createHttpServer(): Server {
       const result = await controller.execute({
         accountId,
         body,
-        params: matchedMealId ? { mealId: matchedMealId } : {},
+        params: matchedMealId ? { mealId: matchedMealId } : savedFoodMatch ? { foodId: savedFoodMatch[1] } : {},
         queryParams: Object.fromEntries(url.searchParams),
       });
 

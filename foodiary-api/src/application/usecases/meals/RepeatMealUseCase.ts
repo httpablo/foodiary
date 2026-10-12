@@ -1,4 +1,5 @@
 import { Meal } from '@application/entities/Meal';
+import { calculateFoodCalories } from '@application/entities/calculateFoodCalories';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
@@ -26,7 +27,7 @@ export class RepeatMealUseCase {
       icon: source.icon,
       foods: foods.map(food => ({
         ...food,
-        calories: Math.round(food.proteins * 4 + food.carbohydrates * 4 + food.fats * 9),
+        calories: calculateFoodCalories(food),
       })),
     });
     await this.mealRepository.create(repeated);

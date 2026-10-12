@@ -1,6 +1,7 @@
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { Meal } from '@application/entities/Meal';
+import { calculateFoodCalories } from '@application/entities/calculateFoodCalories';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
@@ -23,7 +24,7 @@ export class UpdateMealUseCase {
       name,
       foods: foods.map(food => ({
         ...food,
-        calories: Math.round(food.proteins * 4 + food.carbohydrates * 4 + food.fats * 9),
+        calories: calculateFoodCalories(food),
       })),
     });
     if (!saved) {
