@@ -71,7 +71,7 @@ export function WelcomeModal() {
                     {' '}está pronto!
                   </AppText>
                   <AppText color={theme.colors.gray[600]} align="center">
-                    Essa é a recomendação diária recomendada para seu plano. Fique tranquilo, você poderá editar depois caso deseje.
+                    Essas são suas metas diárias iniciais. Você pode ajustá-las quando quiser.
                   </AppText>
                 </View>
               </View>

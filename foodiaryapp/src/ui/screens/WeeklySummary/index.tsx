@@ -31,6 +31,10 @@ function startOfWeek(date: Date): Date {
 
 function formatWeek(start: Date): string {
   const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    const month = Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(end);
+    return `${start.getDate()}–${end.getDate()} DE ${month}`.toUpperCase();
+  }
   const first = Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(start);
   const last = Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(end);
   return `${first} – ${last}`.toUpperCase();
