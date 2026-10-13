@@ -7,6 +7,8 @@ O app usa Expo SDK 57. O Expo Go instalado no Android precisa oferecer suporte a
 3. Nesta pasta, instale as dependências com `pnpm install --frozen-lockfile`.
 4. Defina `EXPO_PUBLIC_API_URL` no `.env` e execute `pnpm dev`.
 
+Para conferir a interface no navegador, inicie a API com `ALLOWED_WEB_ORIGINS=http://localhost:19006,http://127.0.0.1:19006 pnpm start:local`. Em outro terminal, inicie o app com `EXPO_PUBLIC_API_URL=http://127.0.0.1:3005 pnpm web`. O login web usa a sessão da aba do navegador; o Android continua usando SecureStore. Recursos nativos, como câmera e gravação de áudio, ainda devem ser testados no celular.
+
 Use `http://10.0.2.2:3005` para o emulador Android. Para o navegador ou um simulador que roda no mesmo computador, use `http://127.0.0.1:3005`. Em um celular físico na mesma rede, use `http://IP_LOCAL_DO_COMPUTADOR:3005` no app. Se o computador tiver mais de uma interface de rede, inicie o Expo com `REACT_NATIVE_PACKAGER_HOSTNAME=IP_LOCAL_DO_COMPUTADOR pnpm dev` para que o QR code mostre o IP correto. O endereço deve ser alcançável pelo dispositivo; `127.0.0.1` no celular aponta para o próprio celular. Se o IP mudar, atualize o `.env` e reinicie o Expo.
 
 A API usa PostgreSQL e arquivos locais. O processamento das refeições requer `OPENAI_API_KEY` apenas no `.env` da API. Não coloque essa chave no app.
@@ -14,5 +16,7 @@ A API usa PostgreSQL e arquivos locais. O processamento das refeições requer `
 Na tela inicial, **Ver resumo semanal** mostra calorias e nutrientes por dia, a média dos dias registrados e a comparação com as metas atuais. Semanas anteriores podem ser consultadas pelas setas; dias sem refeições aparecem como sem registro.
 
 Em **Cadastrar sua refeição**, escolha **Cadastrar manualmente** para registrar alimentos no dia selecionado sem usar a OpenAI. No formulário, você pode salvar alimentos frequentes e reutilizá-los em outras refeições. O banco local precisa ter recebido `005_manual_meals.sql` e `006_saved_foods.sql`.
+
+Em **E se eu comer isso?**, na tela inicial de hoje, escolha alimentos salvos e ajuste cada um para meia, uma ou duas porções. O app mostra o total projetado do dia antes de registrar a refeição. A simulação usa os nutrientes salvos e não faz chamadas à OpenAI.
 
 Os tokens de login ficam no SecureStore do aparelho. Na primeira abertura após a atualização, o app migra automaticamente uma sessão antiga salva no AsyncStorage.

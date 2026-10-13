@@ -35,6 +35,7 @@ export function Button({
   return (
     <View style={styles.wrapper}>
       <Pressable
+        accessibilityRole="button"
         android_ripple={{
           foreground: true,
           color: rippleStyle === 'dark'

@@ -22,7 +22,6 @@
       "expo-font",
       "expo-video",
       "expo-audio",
-      "@react-native-community/datetimepicker",
       [
         "expo-splash-screen",
         {

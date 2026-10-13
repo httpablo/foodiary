@@ -5,7 +5,7 @@ import { Service } from './Service';
 
 export class AccountsService extends Service {
   static async getMe(): Promise<AccountsService.GetMeResponse> {
-    const { data } = await this.client.get<AccountsService.GetMeResponse>(
+    const { data } = await this.client.get<AccountsService.GetMeApiResponse>(
       '/me',
     );
 
@@ -13,7 +13,7 @@ export class AccountsService extends Service {
       ...data,
       profile: {
         ...data.profile,
-        birthDate: new Date(data.profile.birthDate),
+        birthDate: parseBirthDate(data.profile.birthDate),
         photoUrl: data.profile.photoUrl?.startsWith('/')
           ? `${env.api.url.replace(/\/$/, '')}${data.profile.photoUrl}`
           : data.profile.photoUrl,
@@ -22,7 +22,17 @@ export class AccountsService extends Service {
   }
 }
 
+function parseBirthDate(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export namespace AccountsService {
+  export type GetMeApiResponse = {
+    profile: Omit<GetMeResponse['profile'], 'birthDate'> & { birthDate: string };
+    goal: GetMeResponse['goal'];
+  };
+
   export type GetMeResponse = {
     profile: {
       name: string;

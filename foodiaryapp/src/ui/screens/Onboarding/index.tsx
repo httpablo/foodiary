@@ -12,7 +12,7 @@ export function Onboarding() {
   const form = useForm({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
-      birthDate: new Date(),
+      birthDate: new Date(NaN),
       height: '',
       weight: '',
       account: {

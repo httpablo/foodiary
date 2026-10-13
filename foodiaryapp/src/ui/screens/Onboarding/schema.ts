@@ -9,7 +9,8 @@ const positiveNumber = (requiredMessage: string) => z.string().min(1, requiredMe
 export const onboardingSchema = z.object({
   goal: z.enum(Goal),
   gender: z.enum(Gender),
-  birthDate: z.date(),
+  birthDate: z.date({ message: 'Informe uma data válida' })
+    .refine(date => date.getFullYear() >= 1900 && date <= new Date(), 'Informe uma data válida'),
   height: positiveNumber('Informe a sua altura'),
   weight: positiveNumber('Informe o seu peso'),
   activityLevel: z.enum(ActivityLevel),

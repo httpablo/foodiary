@@ -1,13 +1,11 @@
-
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { ArrowRightIcon } from 'lucide-react-native';
-import { useState } from 'react';
-
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { DateInput } from '@ui/components/DateInput';
 import { theme } from '@ui/styles/theme';
+import { ArrowRightIcon } from 'lucide-react-native';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Platform, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
+
 import { Step, StepContent, StepFooter, StepHeader, StepSubtitle, StepTitle } from '../components/Step';
 import { useOnboarding } from '../context/useOnboarding';
 import { OnboardingSchema } from '../schema';
@@ -16,20 +14,8 @@ export function BirthDateStep() {
   const { nextStep } = useOnboarding();
   const form = useFormContext<OnboardingSchema>();
 
-  const [isDatePickerVisible, setIsDatePickerVisible] = useState(true);
-
-  function handleSelectDate(_event: unknown, newDate: Date) {
-    form.setValue('birthDate', newDate);
-
-    if (Platform.OS === 'android') {
-      setIsDatePickerVisible(false);
-    }
-  }
-
   async function handleNextStep() {
-    const isValid = await form.trigger('birthDate');
-
-    if (isValid) {
+    if (await form.trigger('birthDate')) {
       nextStep();
     }
   }
@@ -38,35 +24,33 @@ export function BirthDateStep() {
     <Step>
       <StepHeader>
         <StepTitle>Que dia você nasceu?</StepTitle>
-        <StepSubtitle>Cada faixa etária responde de forma única</StepSubtitle>
+        <StepSubtitle>Informe sua data de nascimento</StepSubtitle>
       </StepHeader>
 
       <StepContent position="center">
-        <Controller
-          control={form.control}
-          name="birthDate"
-          render={({ field }) => (
-            <>
-              {isDatePickerVisible && (
-                <DateTimePicker
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+        <View style={{ width: '100%', gap: 8 }}>
+          <Controller
+            control={form.control}
+            name="birthDate"
+            render={({ field, fieldState }) => (
+              <>
+                <DateInput
                   value={field.value}
-                  onValueChange={handleSelectDate}
-                  onDismiss={() => setIsDatePickerVisible(false)}
+                  onChange={date => form.setValue('birthDate', date, {
+                    shouldDirty: true,
+                    shouldValidate: !!fieldState.error,
+                  })}
+                  error={!!fieldState.error}
                 />
-              )}
-
-              {Platform.OS === 'android' && (
-                <TouchableOpacity onPress={() => setIsDatePickerVisible(true)}>
-                  <AppText weight="semiBold" size="3xl" color={theme.colors.gray[700]}>
-                    {formatDate(field.value)}
+                {fieldState.error && (
+                  <AppText size="sm" color={theme.colors.support.red}>
+                    {fieldState.error.message}
                   </AppText>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        />
+                )}
+              </>
+            )}
+          />
+        </View>
       </StepContent>
 
       <StepFooter>
@@ -76,12 +60,4 @@ export function BirthDateStep() {
       </StepFooter>
     </Step>
   );
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
 }

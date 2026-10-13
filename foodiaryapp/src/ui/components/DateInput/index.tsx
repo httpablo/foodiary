@@ -1,10 +1,7 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { theme } from '@ui/styles/theme';
-import { CalendarIcon } from 'lucide-react-native';
-import { useState } from 'react';
-import { Platform, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { TextInput, View } from 'react-native';
+
 import { AppText } from '../AppText';
-import { inputStyles } from '../Input/styles';
 import { styles } from './styles';
 
 export interface IDateInputProps {
@@ -12,102 +9,103 @@ export interface IDateInputProps {
   onChange: (date: Date) => void;
   error?: boolean;
   disabled?: boolean;
-  placeholder?: string;
 }
 
-export function DateInput({
-  value,
-  onChange,
-  error,
-  disabled,
-  placeholder = 'DD/MM/AAAA',
-}: IDateInputProps) {
-  const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+function getParts(date?: Date) {
+  if (!date || Number.isNaN(date.getTime())) {
+    return { day: '', month: '', year: '' };
+  }
 
-  function handleSelectDate(_event: unknown, newDate: Date) {
-    if (Platform.OS === 'android') {
-      setIsDatePickerVisible(false);
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: String(date.getMonth() + 1).padStart(2, '0'),
+    year: String(date.getFullYear()),
+  };
+}
+
+type DateParts = ReturnType<typeof getParts>;
+
+function toDate({ day, month, year }: DateParts): Date {
+  if (day.length !== 2 || month.length !== 2 || year.length !== 4) {
+    return new Date(NaN);
+  }
+
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    parsed.getFullYear() !== Number(year)
+    || parsed.getMonth() + 1 !== Number(month)
+    || parsed.getDate() !== Number(day)
+  ) {
+    return new Date(NaN);
+  }
+
+  return parsed;
+}
+
+export function DateInput({ value, onChange, error, disabled }: IDateInputProps) {
+  const [parts, setParts] = useState(() => getParts(value));
+  const monthRef = useRef<TextInput>(null);
+  const yearRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (value && !Number.isNaN(value.getTime())) {
+      setParts(getParts(value));
     }
+  }, [value]);
 
-    onChange(newDate);
-  }
+  function updatePart(part: keyof DateParts, text: string) {
+    const next = { ...parts, [part]: text.replace(/\D/g, '') };
+    setParts(next);
+    onChange(toDate(next));
 
-  function handlePress() {
-    if (disabled) {
-      return;
+    if (part === 'day' && next.day.length === 2) {
+      monthRef.current?.focus();
+    } else if (part === 'month' && next.month.length === 2) {
+      yearRef.current?.focus();
     }
-
-    setIsDatePickerVisible(true);
   }
 
-  function handleClosePicker() {
-    setIsDatePickerVisible(false);
-  }
-
-  const formattedDate = formatDate(value);
-  const hasValue = value !== undefined;
+  const fieldStyle = [styles.field, error && styles.fieldError, disabled && styles.fieldDisabled];
 
   return (
-    <View>
-      <TouchableOpacity
-        onPress={handlePress}
-        style={[
-          inputStyles({
-            status: error ? 'error' : 'default',
-            disabled: disabled ? 'true' : 'false',
-            hasSuffix: 'false',
-          }),
-          styles.inputContainer,
-        ]}
-        disabled={disabled}
-      >
-        <AppText
-          style={[
-            styles.text,
-            !hasValue && styles.placeholder,
-          ]}
-        >
-          {hasValue ? formattedDate : placeholder}
-        </AppText>
-        <CalendarIcon size={20} color={theme.colors.black[700]} />
-      </TouchableOpacity>
-
-      {isDatePickerVisible && Platform.OS === 'ios' && (
-        <View style={styles.pickerContainer}>
-          <View style={styles.pickerHeader}>
-            <TouchableOpacity onPress={handleClosePicker}>
-              <AppText color={theme.colors.lime[700]} weight="medium">
-                Concluído
-              </AppText>
-            </TouchableOpacity>
-          </View>
-          <DateTimePicker
-            mode="date"
-            display="spinner"
-            value={value}
-            onValueChange={handleSelectDate}
-            style={styles.picker}
-          />
-        </View>
-      )}
-
-      {isDatePickerVisible && Platform.OS === 'android' && (
-        <DateTimePicker
-          mode="date"
-          display="calendar"
-          value={value}
-          onValueChange={handleSelectDate}
-          onDismiss={handleClosePicker}
-        />
-      )}
+    <View style={styles.container}>
+      <TextInput
+        accessibilityLabel="Dia de nascimento"
+        placeholder="DD"
+        keyboardType="number-pad"
+        maxLength={2}
+        value={parts.day}
+        onChangeText={text => updatePart('day', text)}
+        editable={!disabled}
+        selectTextOnFocus
+        style={[fieldStyle, styles.shortField]}
+      />
+      <AppText style={styles.separator}>/</AppText>
+      <TextInput
+        ref={monthRef}
+        accessibilityLabel="Mês de nascimento"
+        placeholder="MM"
+        keyboardType="number-pad"
+        maxLength={2}
+        value={parts.month}
+        onChangeText={text => updatePart('month', text)}
+        editable={!disabled}
+        selectTextOnFocus
+        style={[fieldStyle, styles.shortField]}
+      />
+      <AppText style={styles.separator}>/</AppText>
+      <TextInput
+        ref={yearRef}
+        accessibilityLabel="Ano de nascimento"
+        placeholder="AAAA"
+        keyboardType="number-pad"
+        maxLength={4}
+        value={parts.year}
+        onChangeText={text => updatePart('year', text)}
+        editable={!disabled}
+        selectTextOnFocus
+        style={[fieldStyle, styles.yearField]}
+      />
     </View>
   );
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
 }

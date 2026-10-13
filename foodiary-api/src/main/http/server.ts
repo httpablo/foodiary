@@ -158,8 +158,24 @@ async function accountIdFromRequest(request: IncomingMessage): Promise<string> {
 }
 
 export function createHttpServer(): Server {
+  const allowedWebOrigins = new Set((process.env.ALLOWED_WEB_ORIGINS ?? '')
+    .split(',').map(value => value.trim()).filter(Boolean));
+
   return createServer(async (request, response) => {
     try {
+      const origin = request.headers.origin;
+      if (origin && allowedWebOrigins.has(origin)) {
+        response.setHeader('Access-Control-Allow-Origin', origin);
+        response.setHeader('Vary', 'Origin');
+        response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        response.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+      }
+      if (request.method === 'OPTIONS') {
+        response.statusCode = origin && allowedWebOrigins.has(origin) ? 204 : 403;
+        response.end();
+        return;
+      }
+
       const url = new URL(request.url ?? '/', 'http://localhost');
 
       if (request.method === 'GET' && url.pathname === '/health') {
