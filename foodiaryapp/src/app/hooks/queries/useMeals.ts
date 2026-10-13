@@ -6,7 +6,7 @@ export function useMeals(date: Date) {
   const formattedDate = formatDateToAPI(date);
   const timezoneOffsetMinutes = date.getTimezoneOffset();
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
     staleTime: Infinity,
     queryKey: ['meals', formattedDate, timezoneOffsetMinutes],
     placeholderData: keepPreviousData,
@@ -20,6 +20,7 @@ export function useMeals(date: Date) {
     meals: data ?? [],
     isInitialLoading: isLoading,
     isLoading: isFetching,
+    isError,
     reloadMeals: refetch,
   };
 }

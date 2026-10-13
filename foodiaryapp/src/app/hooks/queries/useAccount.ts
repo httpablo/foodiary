@@ -6,7 +6,7 @@ interface IUseAccountParams {
 }
 
 export function useAccount(params?: IUseAccountParams) {
-  const { data, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     enabled: params?.enabled ?? true,
     queryKey: ['account'],
     queryFn: () => AccountsService.getMe(),
@@ -15,6 +15,8 @@ export function useAccount(params?: IUseAccountParams) {
 
   return {
     account: data,
+    isLoading,
+    isError,
     loadAccount: refetch,
   };
 }

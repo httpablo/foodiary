@@ -4,6 +4,7 @@ import { AppText } from '@ui/components/AppText';
 import { theme } from '@ui/styles/theme';
 import { ChevronRightIcon } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
+import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { useHomeContext } from '../../context/useHomeContext';
 import { CurrentGoal } from '../CurrentGoal';
 import { DateSwitcher } from '../DateSwitcher';
@@ -11,7 +12,7 @@ import { UserHeader } from '../UserHeader';
 import { styles } from './styles';
 
 export function Header() {
-  const { isLoading } = useHomeContext();
+  const { isLoading, date } = useHomeContext();
   const { navigate } = useNavigation<AppStackNavigationProps>();
 
   return (
@@ -21,6 +22,20 @@ export function Header() {
       <View style={styles.container}>
         <DateSwitcher />
         <CurrentGoal />
+        {formatDateToAPI(date) === formatDateToAPI(new Date()) && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Simular próximo prato"
+            onPress={() => navigate('MealPlanner')}
+            style={styles.plannerLink}
+          >
+            <View style={styles.plannerLinkText}>
+              <AppText weight="semiBold">E se eu comer isso?</AppText>
+              <AppText size="sm" color={theme.colors.gray[700]}>Monte um prato e veja como fica seu dia</AppText>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.black[700]} />
+          </Pressable>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Ver resumo semanal"

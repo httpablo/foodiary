@@ -1,0 +1,32 @@
+import { theme } from '@ui/styles/theme';
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.white },
+  flex: { flex: 1 },
+  loading: { marginTop: 80 },
+  errorCard: { margin: 20, padding: 20, borderRadius: 16, backgroundColor: theme.colors.gray[100], gap: 20 },
+  content: { paddingHorizontal: 20, paddingTop: 16, gap: 24 },
+  intro: { gap: 6 },
+  previewCard: { backgroundColor: theme.colors.lime[400], borderRadius: 20, padding: 20, gap: 10 },
+  previewCalories: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 },
+  section: { gap: 14 },
+  metricsCard: { borderWidth: 1, borderColor: theme.colors.gray[400], borderRadius: 18, padding: 16, gap: 20 },
+  metricRow: { gap: 8 },
+  metricHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: theme.colors.gray[200], overflow: 'hidden' },
+  progressFill: { height: 8, position: 'absolute', left: 0, top: 0, borderRadius: 4 },
+  goalMarker: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -2, backgroundColor: theme.colors.black[700] },
+  emptyCard: { backgroundColor: theme.colors.gray[100], borderRadius: 16, padding: 18, gap: 16 },
+  selectedCard: { borderWidth: 1, borderColor: theme.colors.gray[400], borderRadius: 16, padding: 16, gap: 16 },
+  foodHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  foodTitle: { flex: 1, minWidth: 0, gap: 3 },
+  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  portionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  portionOptions: { flexDirection: 'row', gap: 8 },
+  portionOption: { minWidth: 48, minHeight: 44, paddingHorizontal: 10, borderRadius: 10, backgroundColor: theme.colors.gray[200], alignItems: 'center', justifyContent: 'center' },
+  portionOptionSelected: { backgroundColor: theme.colors.lime[500] },
+  portionOptionDisabled: { opacity: 0.4 },
+  availableFood: { borderWidth: 1, borderColor: theme.colors.gray[400], borderRadius: 14, padding: 14, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  footer: { borderTopWidth: 1, borderTopColor: theme.colors.gray[400], paddingHorizontal: 20, paddingTop: 12 },
+});
