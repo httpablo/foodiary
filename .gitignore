@@ -1,6 +1,4 @@
 node_modules
-.serverless
 dist
 .env
-.serverless/
 *.env
