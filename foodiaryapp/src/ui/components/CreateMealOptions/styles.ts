@@ -10,11 +10,11 @@ export const styles = StyleSheet.create({
     gap: 16,
   },
   buttonWrapper: {
-    flex: 1,
     borderRadius: 16,
     overflow: 'hidden',
   },
-  buttonWrapperHorizontal: { flex: 0, width: '100%' },
+  buttonWrapperMedia: { flex: 1 },
+  buttonWrapperHorizontal: { width: '100%' },
   button: {
     borderWidth: 1,
     borderColor: theme.colors.gray[300],

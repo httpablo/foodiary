@@ -92,7 +92,7 @@ interface IOptionButtonProps {
 
 export function OptionButton({ icon: Icon, label, disabled, onPress, horizontal = false }: IOptionButtonProps) {
   return (
-    <View style={[styles.buttonWrapper, horizontal && styles.buttonWrapperHorizontal]}>
+    <View style={[styles.buttonWrapper, horizontal ? styles.buttonWrapperHorizontal : styles.buttonWrapperMedia]}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
