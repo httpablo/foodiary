@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, StyleProp, View, ViewStyle } from 'react-native';
+import { Animated, Platform, StyleProp, View, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 interface IArcProps {
@@ -54,14 +54,25 @@ export function Arc({
           strokeLinecap="round"
         />
 
-        <AnimatedPath
-          d={arcDraw}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={[arcLength, semiCircumference]}
-          strokeLinecap="round"
-        />
+        {Platform.OS === 'web' ? (
+          <Path
+            d={arcDraw}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={[semiCircumference * percentage / 100, semiCircumference]}
+            strokeLinecap="round"
+          />
+        ) : (
+          <AnimatedPath
+            d={arcDraw}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={[arcLength, semiCircumference]}
+            strokeLinecap="round"
+          />
+        )}
       </Svg>
     </View>
   );

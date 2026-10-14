@@ -1,6 +1,6 @@
 import { theme } from '@ui/styles/theme';
 import { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 import { Arc } from './Arc';
 import { styles } from './styles';
 import { MacroProgress } from './types';
@@ -19,6 +19,9 @@ export function GoalStats({
   fats,
   proteins,
 }: IGoalArcsProps) {
+  const { width } = useWindowDimensions();
+  const strokeWidth = 12;
+  const outerRadius = Math.min(160, (width - 32 - strokeWidth) / 2);
   const percentages = useMemo(() => ({
     calories: calcMacroPercentage(calories),
     carbohydrates: calcMacroPercentage(carbohydrates),
@@ -28,32 +31,32 @@ export function GoalStats({
 
   return (
     <View style={styles.container}>
-      <View style={styles.arcsContainer}>
+      <View style={[styles.arcsContainer, { minHeight: outerRadius + strokeWidth }]}>
         <Arc
           percentage={percentages.calories}
           color={theme.colors.support.tomato}
-          radius={160}
-          strokeWidth={12}
+          radius={outerRadius}
+          strokeWidth={strokeWidth}
         />
         <Arc
           percentage={percentages.proteins}
           color={theme.colors.support.teal}
-          radius={140}
-          strokeWidth={12}
+          radius={outerRadius - 20}
+          strokeWidth={strokeWidth}
           style={styles.proteinArc}
         />
         <Arc
           percentage={percentages.carbohydrates}
           color={theme.colors.support.yellow}
-          radius={120}
-          strokeWidth={12}
+          radius={outerRadius - 40}
+          strokeWidth={strokeWidth}
           style={styles.carbohydrateArc}
         />
         <Arc
           percentage={percentages.fats}
           color={theme.colors.support.orange}
-          radius={100}
-          strokeWidth={12}
+          radius={outerRadius - 60}
+          strokeWidth={strokeWidth}
           style={styles.fatArc}
         />
 

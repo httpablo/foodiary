@@ -9,7 +9,6 @@ export const styles = StyleSheet.create({
   arcsContainer: {
     alignItems: 'center',
     position: 'relative',
-    minHeight: 172,
   },
   proteinArc: {
     position: 'absolute',
