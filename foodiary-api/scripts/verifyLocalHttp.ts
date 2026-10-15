@@ -10,13 +10,24 @@ import path from 'node:path';
 import { createHttpServer } from '@main/http/server';
 import { getPostgresPool } from '@infra/database/postgres/pool';
 import { LocalMealsFileStorageGateway } from '@infra/gateways/LocalMealsFileStorageGateway';
+import type { NutritionLabelResult } from '@infra/ai/gateways/NutritionLabelAIGateway';
 
 async function main() {
   const mealsDirectory = await mkdtemp(path.join(tmpdir(), 'foodiary-meals-test-'));
   const photosDirectory = await mkdtemp(path.join(tmpdir(), 'foodiary-profile-photos-test-'));
   process.env.LOCAL_MEALS_DIR = mealsDirectory;
   process.env.LOCAL_PROFILE_PHOTOS_DIR = photosDirectory;
-  const server = createHttpServer();
+  const photo = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x01, 0xff, 0xd9]);
+  let nextLabelResult: NutritionLabelResult = {
+    name: 'Iogurte natural', quantity: '170 g', basis: 'Porção do rótulo',
+    calories: 120, proteins: 8, carbohydrates: 12, fats: 4,
+  };
+  const server = createHttpServer({
+    scanNutritionLabel: async bytes => {
+      assert.deepEqual(bytes, photo);
+      return nextLabelResult;
+    },
+  });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const port = (server.address() as AddressInfo).port;
   const base = `http://127.0.0.1:${port}`;
@@ -76,12 +87,40 @@ async function main() {
     assert.equal(initialAccount.profile.name, 'HTTP Test');
     assert.equal(initialAccount.profile.photoUrl, null);
 
-    const photo = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x01, 0xff, 0xd9]);
     const photoForm = () => {
       const form = new FormData();
       form.append('file', new Blob([photo], { type: 'image/jpeg' }), 'profile.jpeg');
       return form;
     };
+    assert.equal((await request('/nutrition-label/scan', { method: 'POST', body: photoForm() })).status, 401);
+    const scan = await request('/nutrition-label/scan', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: photoForm(),
+    });
+    assert.equal(scan.status, 200, await scan.clone().text());
+    assert.deepEqual(await scan.json(), {
+      name: 'Iogurte natural', quantity: '170 g', basis: 'Porção do rótulo',
+      calories: 120, proteins: 8, carbohydrates: 12, fats: 4,
+    });
+    nextLabelResult = {
+      name: null, quantity: null, basis: null, calories: null,
+      proteins: null, carbohydrates: null, fats: null,
+    };
+    const unreadableScan = await request('/nutrition-label/scan', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: photoForm(),
+    });
+    assert.equal(unreadableScan.status, 400);
+    const invalidForm = new FormData();
+    invalidForm.append('file', new Blob(['invalid'], { type: 'text/plain' }), 'invalid.txt');
+    const invalidScan = await request('/nutrition-label/scan', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: invalidForm,
+    });
+    assert.equal(invalidScan.status, 400);
     assert.equal((await request('/profile-photo', { method: 'PUT', body: photoForm() })).status, 401);
     const photoUpload = await request('/profile-photo', {
       method: 'PUT',
@@ -401,7 +440,7 @@ async function main() {
     })).status, 404);
 
     // eslint-disable-next-line no-console
-    console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, profile photo, and signed file access: OK');
+    console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, nutrition label scan, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
     await pool.query('DELETE FROM accounts WHERE email = $1', [otherEmail]);

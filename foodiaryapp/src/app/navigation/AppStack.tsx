@@ -13,6 +13,8 @@ import { MealDetails } from '@ui/screens/MealDetails';
 import { EditMeal } from '@ui/screens/EditMeal';
 import { WeeklySummaryScreen } from '@ui/screens/WeeklySummary';
 import { MealPlanner } from '@ui/screens/MealPlanner';
+import { NutritionLabelScanner } from '@ui/screens/NutritionLabelScanner';
+import type { SavedFood } from '@app/types/SavedFood';
 
 type AppStackParamList = {
   Home: undefined;
@@ -26,12 +28,14 @@ type AppStackParamList = {
     mode: 'create';
     date: string;
     timezoneOffsetMinutes: number;
+    initialFood?: Omit<SavedFood, 'id'>;
   };
   EditGoals: undefined;
   Account: undefined;
   EditProfile: undefined;
   WeeklySummary: undefined;
   MealPlanner: undefined;
+  NutritionLabelScanner: { mealDate: string; timezoneOffsetMinutes: number } | undefined;
 };
 
 export type AppStackNavigationProps = NativeStackNavigationProp<AppStackParamList>;
@@ -59,6 +63,7 @@ export function AppStack() {
       <Stack.Screen name="EditProfile" component={EditProfile} />
       <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
       <Stack.Screen name="MealPlanner" component={MealPlanner} />
+      <Stack.Screen name="NutritionLabelScanner" component={NutritionLabelScanner} />
     </Stack.Navigator>
   );
 }

@@ -31,6 +31,7 @@ import { HttpError } from '@application/errors/http/HttpError';
 import { Unauthorized } from '@application/errors/http/Unauthorized';
 import { Meal } from '@application/entities/Meal';
 import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
+import { NutritionLabelAIGateway, type NutritionLabelResult } from '@infra/ai/gateways/NutritionLabelAIGateway';
 import { getPostgresPool } from '@infra/database/postgres/pool';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
 import { ProfileRepository } from '@infra/database/postgres/repositories/ProfileRepository';
@@ -157,7 +158,11 @@ async function accountIdFromRequest(request: IncomingMessage): Promise<string> {
   }
 }
 
-export function createHttpServer(): Server {
+export function createHttpServer(options: {
+  scanNutritionLabel?: (image: Buffer) => Promise<NutritionLabelResult>;
+} = {}): Server {
+  const scanNutritionLabel = options.scanNutritionLabel
+    ?? ((image: Buffer) => new NutritionLabelAIGateway().scan(image));
   const allowedWebOrigins = new Set((process.env.ALLOWED_WEB_ORIGINS ?? '')
     .split(',').map(value => value.trim()).filter(Boolean));
 
@@ -267,6 +272,22 @@ export function createHttpServer(): Server {
           }
         }
         sendJson(response, 200, { photoUrl: profilePhotoStorage.getFileURL(fileKey) });
+        return;
+      }
+
+      if (request.method === 'POST' && url.pathname === '/nutrition-label/scan') {
+        await accountIdFromRequest(request);
+        const { bytes, contentType } = await readFileUpload(request);
+        if (contentType !== 'image/jpeg'
+          || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
+          throw new BadRequest('Nutrition label must be a JPEG image.');
+        }
+        const label = await scanNutritionLabel(bytes);
+        if (label.quantity === null && label.calories === null
+          && label.proteins === null && label.carbohydrates === null && label.fats === null) {
+          throw new BadRequest('No readable nutrition table was found.');
+        }
+        sendJson(response, 200, label);
         return;
       }
 

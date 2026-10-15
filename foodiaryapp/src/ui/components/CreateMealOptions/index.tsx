@@ -2,7 +2,7 @@ import { AppStackNavigationProps } from '@app/navigation/AppStack';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
-import { CameraIcon, LucideIcon, MicIcon, PencilIcon } from 'lucide-react-native';
+import { CameraIcon, LucideIcon, MicIcon, PencilIcon, ScanTextIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, View } from 'react-native';
 import { AppText } from '../AppText';
@@ -76,6 +76,19 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
         label="Cadastrar manualmente"
         disabled={disabled}
         onPress={handleManualMeal}
+        horizontal
+      />
+      <OptionButton
+        icon={ScanTextIcon}
+        label="Cadastrar alimento pelo rótulo"
+        disabled={disabled}
+        onPress={() => {
+          onCreate?.();
+          navigate('NutritionLabelScanner', {
+            mealDate: formatDateToAPI(date),
+            timezoneOffsetMinutes: date.getTimezoneOffset(),
+          });
+        }}
         horizontal
       />
     </View>

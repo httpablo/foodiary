@@ -1,5 +1,6 @@
 import { useCreateManualMeal } from '@app/hooks/mutations/useCreateManualMeal';
 import { useSaveFood } from '@app/hooks/mutations/useSaveFood';
+import { parseNutrient } from '@app/lib/parseNutrient';
 import { useUpdateMeal } from '@app/hooks/mutations/useUpdateMeal';
 import { useRepeatMeal } from '@app/hooks/mutations/useRepeatMeal';
 import { useMeal } from '@app/hooks/queries/useMeal';
@@ -33,14 +34,14 @@ const emptyFood = (id: number): FoodDraft => ({
   id, name: '', quantity: '', proteins: '', carbohydrates: '', fats: '',
 });
 
-function parseNutrient(value: string): number | null {
-  const normalized = value.trim().replace(',', '.');
-  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
-    return null;
-  }
-  const number = Number(normalized);
-  return Number.isFinite(number) && number <= 10000 ? number : null;
-}
+const foodToDraft = (food: Omit<SavedFood, 'id'>, id: number): FoodDraft => ({
+  id,
+  name: food.name,
+  quantity: food.quantity,
+  proteins: String(food.proteins),
+  carbohydrates: String(food.carbohydrates),
+  fats: String(food.fats),
+});
 
 function parseFood(food: FoodDraft): MealsService.UpdateMealPayload['foods'][number] | null {
   const name = food.name.trim();
@@ -57,7 +58,7 @@ function parseFood(food: FoodDraft): MealsService.UpdateMealPayload['foods'][num
 
 export function EditMeal() {
   const { params } = useRoute<AppStackRouteProps<'EditMeal'>>();
-  const { goBack, reset } = useNavigation<AppStackNavigationProps>();
+  const { goBack, navigate, reset } = useNavigation<AppStackNavigationProps>();
   const isCreating = params.mode === 'create';
   const isRepeating = params.mode === 'repeat';
   const mealId = 'mealId' in params ? params.mealId : undefined;
@@ -70,7 +71,9 @@ export function EditMeal() {
   const { saveFood, isSavingFood } = useSaveFood();
   const isSaving = isUpdating || isRepeatingMeal || isCreatingMeal;
   const [name, setName] = useState('');
-  const [foods, setFoods] = useState<FoodDraft[]>(isCreating ? [emptyFood(0)] : []);
+  const [foods, setFoods] = useState<FoodDraft[]>(isCreating
+    ? [params.initialFood ? foodToDraft(params.initialFood, 0) : emptyFood(0)]
+    : []);
   const [showSavedFoods, setShowSavedFoods] = useState(false);
   const initializedMealId = useRef<string | null>(null);
   const nextFoodId = useRef(isCreating ? 1 : 0);
@@ -78,14 +81,7 @@ export function EditMeal() {
   useEffect(() => {
     if (meal && initializedMealId.current !== meal.id) {
       setName(meal.name);
-      setFoods(meal.foods.map(food => ({
-        id: nextFoodId.current++,
-        name: food.name,
-        quantity: food.quantity,
-        proteins: String(food.proteins),
-        carbohydrates: String(food.carbohydrates),
-        fats: String(food.fats),
-      })));
+      setFoods(meal.foods.map(food => foodToDraft(food, nextFoodId.current++)));
       initializedMealId.current = meal.id;
     }
   }, [meal]);
@@ -101,14 +97,7 @@ export function EditMeal() {
       Alert.alert('Limite de alimentos', 'Uma refeição pode ter até 50 alimentos.');
       return;
     }
-    const draft = {
-      id: nextFoodId.current++,
-      name: food.name,
-      quantity: food.quantity,
-      proteins: String(food.proteins),
-      carbohydrates: String(food.carbohydrates),
-      fats: String(food.fats),
-    };
+    const draft = foodToDraft(food, nextFoodId.current++);
     setFoods(current => (
       isCreating && current.length === 1
         && !current[0].name.trim() && !current[0].quantity.trim()
@@ -212,6 +201,12 @@ export function EditMeal() {
 
           <Button variant="secondary" onPress={() => setShowSavedFoods(value => !value)}>
             {showSavedFoods ? 'Ocultar alimentos salvos' : 'Usar alimento salvo'}
+          </Button>
+          <Button variant="secondary" onPress={() => {
+            setShowSavedFoods(true);
+            navigate('NutritionLabelScanner');
+          }}>
+            Escanear rótulo
           </Button>
           {showSavedFoods && <SavedFoodsPicker onSelect={addSavedFood} disabled={isSaving} />}
 

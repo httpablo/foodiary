@@ -189,6 +189,9 @@ export function MealPlanner() {
 
             <View style={styles.section}>
               <AppText size="lg" weight="semiBold">Adicionar alimento salvo</AppText>
+              <Button variant="secondary" onPress={() => navigate('NutritionLabelScanner')} disabled={isSaving}>
+                Escanear rótulo de um alimento
+              </Button>
               {savedFoods.length > 0 && (
                 <Input value={search} onChangeText={setSearch} placeholder="Buscar por nome ou quantidade" disabled={isSaving} />
               )}

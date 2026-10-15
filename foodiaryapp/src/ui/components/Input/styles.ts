@@ -37,6 +37,7 @@ export const inputStyles = createVariants({
     hasSuffix: {
       true: {
         flex: 1,
+        minWidth: 0,
       },
       false: {},
     },
