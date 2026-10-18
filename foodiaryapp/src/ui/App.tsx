@@ -1,11 +1,9 @@
 import 'react-native-reanimated';
 
-import {
-  HostGrotesk_400Regular,
-  HostGrotesk_500Medium,
-  HostGrotesk_600SemiBold,
-  useFonts,
-} from '@expo-google-fonts/host-grotesk';
+import { HostGrotesk_400Regular } from '@expo-google-fonts/host-grotesk/400Regular';
+import { HostGrotesk_500Medium } from '@expo-google-fonts/host-grotesk/500Medium';
+import { HostGrotesk_600SemiBold } from '@expo-google-fonts/host-grotesk/600SemiBold';
+import { useFonts } from '@expo-google-fonts/host-grotesk/useFonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useLayoutEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
