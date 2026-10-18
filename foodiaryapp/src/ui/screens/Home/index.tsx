@@ -5,6 +5,7 @@ import { theme } from '@ui/styles/theme';
 import { HomeProvider } from '../../../HomeProvider';
 import { EmptyState } from './components/EmptyState';
 import { Fab } from './components/Fab';
+import { FAB_BOTTOM_SPACING, FAB_SIZE } from './components/Fab/styles';
 import { FullScreenLoader } from './components/FullScreenLoader';
 import { Header } from './components/Header';
 import { ItemSeparatorComponent } from './components/ItemSeparatorComponent';
@@ -44,7 +45,10 @@ export function Home() {
         <FlatList
           data={meals}
           keyExtractor={item => item.id}
-          contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: bottom + 24 + (meals.length > 0 ? FAB_BOTTOM_SPACING + FAB_SIZE : 0) },
+          ]}
           ListHeaderComponent={Header}
           ListEmptyComponent={EmptyState}
           ItemSeparatorComponent={ItemSeparatorComponent}

@@ -14,6 +14,7 @@ export function DateSwitcher() {
       <Button
         size="icon"
         variant="ghost"
+        accessibilityLabel="Dia anterior"
         onPress={previousDay}
         disabled={isLoading}
       >
@@ -31,6 +32,7 @@ export function DateSwitcher() {
       <Button
         size="icon"
         variant="ghost"
+        accessibilityLabel="Próximo dia"
         onPress={nextDay}
         disabled={isLoading}
       >

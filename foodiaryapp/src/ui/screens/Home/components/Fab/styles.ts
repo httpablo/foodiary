@@ -1,9 +1,16 @@
 import { StyleSheet } from 'react-native';
 
+export const FAB_SIZE = 48;
+export const FAB_BOTTOM_SPACING = 16;
+
 export const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     right: 16,
+  },
+  button: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
   },
   bottomSheet: {
     shadowColor: '#000',

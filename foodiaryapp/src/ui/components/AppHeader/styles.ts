@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
-    height: 48,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -12,6 +12,8 @@ export const styles = StyleSheet.create({
   title: {
     flex: 1,
     marginLeft: 8,
+    minWidth: 0,
+    paddingVertical: 12,
   },
   rightAction: {
     marginLeft: 8,

@@ -10,7 +10,7 @@ import { PlusIcon } from 'lucide-react-native';
 import { useRef } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { styles } from './styles';
+import { FAB_BOTTOM_SPACING, styles } from './styles';
 
 export function Fab({ date }: { date: Date }) {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -22,8 +22,13 @@ export function Fab({ date }: { date: Date }) {
 
   return (
     <>
-      <View style={[styles.container, { bottom: bottom }]}>
-        <Button size="icon" onPress={handleOpenBottomSheet}>
+      <View style={[styles.container, { bottom: bottom + FAB_BOTTOM_SPACING }]}>
+        <Button
+          size="icon"
+          style={styles.button}
+          accessibilityLabel="Cadastrar refeição"
+          onPress={handleOpenBottomSheet}
+        >
           <PlusIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </View>
