@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 import { useAccount } from '@app/hooks/queries/useAccount';
 import { AuthTokensManager } from '@app/lib/AuthTokensManager';
+import { queryKeys } from '@app/lib/queryKeys';
 import { AuthService } from '@app/services/AuthService';
 import { Service } from '@app/services/Service';
 
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSignedUp(false);
     setConnectionError(false);
 
-    queryClient.setQueryData(['account'], null);
+    queryClient.setQueryData(queryKeys.account(), null);
     queryClient.clear();
     forceRender();
     await AuthTokensManager.clear();

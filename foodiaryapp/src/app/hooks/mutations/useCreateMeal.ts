@@ -1,4 +1,5 @@
 import { getFileInfo } from '@app/lib/getFileInfo';
+import { invalidateMealQueries } from '@app/lib/queryKeys';
 import { MealsService } from '@app/services/MealsService';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,12 +40,8 @@ export function useCreateMeal() {
 
       return { mealId };
     },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['meals'] }),
-        queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
-        queryClient.invalidateQueries({ queryKey: ['mealHistory'] }),
-      ]);
+    onSuccess: async (result) => {
+      await invalidateMealQueries(queryClient, result.mealId);
     },
   });
 

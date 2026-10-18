@@ -30,7 +30,11 @@ export type Meal = {
   icon: string;
   foods: Food[];
   createdAt: Date;
-}
+};
+
+export type APIMeal = Omit<Meal, 'createdAt'> & {
+  createdAt: string | Date;
+};
 
 export type SimplifiedMeal = {
   id: string;
@@ -38,4 +42,8 @@ export type SimplifiedMeal = {
   name: string;
   icon: string;
   foods: Food[];
-}
+};
+
+export type APISimplifiedMeal = Omit<SimplifiedMeal, 'createdAt'> & {
+  createdAt: string | Date;
+};

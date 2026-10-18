@@ -480,7 +480,110 @@ async function main() {
     assert.equal(Number(parsedProfile.weight), 70.2);
   }
 
-  console.log('App auth & audit regressions: APP-002, APP-003, APP-004, APP-005, APP-008, APP-009, APP-010, ENG-001 OK');
+  // APP:REC-001, APP:REC-002 & APP:REC-006: queryKeys factory, invalidateMealQueries, and useMeal polling guard
+  {
+    const { queryKeys, invalidateMealQueries } = load('app/lib/queryKeys.ts');
+    assert.deepEqual(queryKeys.account(), ['account']);
+    assert.deepEqual(queryKeys.meals(), ['meals']);
+    assert.deepEqual(queryKeys.meals('2026-10-18'), ['meals', '2026-10-18']);
+    assert.deepEqual(queryKeys.meals('2026-10-18', 180), ['meals', '2026-10-18', 180]);
+    assert.deepEqual(queryKeys.meal('meal-42'), ['meal', 'meal-42']);
+    assert.deepEqual(queryKeys.weeklySummary(), ['weeklySummary']);
+    assert.deepEqual(queryKeys.weeklySummary('2026-10-18'), ['weeklySummary', '2026-10-18']);
+    assert.deepEqual(queryKeys.mealHistory(), ['mealHistory']);
+    assert.deepEqual(queryKeys.mealHistory({ cursor: 'c1' }), ['mealHistory', { cursor: 'c1' }]);
+    assert.deepEqual(queryKeys.savedFoods(), ['savedFoods']);
+    assert.deepEqual(queryKeys.savedFoods('arroz'), ['savedFoods', 'arroz']);
+
+    const invalidated = [];
+    await invalidateMealQueries({
+      invalidateQueries: async (opts) => { invalidated.push(opts.queryKey); },
+    }, 'meal-42');
+    assert.deepEqual(invalidated, [
+      ['meal', 'meal-42'],
+      ['meals'],
+      ['weeklySummary'],
+      ['mealHistory'],
+    ]);
+
+    let capturedRefetchInterval;
+    const { useMeal } = load('app/hooks/queries/useMeal.ts', {
+      '@app/services/MealsService': { MealsService: {} },
+      '@app/types/Meal': {
+        MealStatus: {
+          UPLOADING: 'UPLOADING',
+          QUEUED: 'QUEUED',
+          PROCESSING: 'PROCESSING',
+          SUCCESS: 'SUCCESS',
+          FAILED: 'FAILED',
+        },
+      },
+      '@tanstack/react-query': {
+        useQuery: (options) => {
+          capturedRefetchInterval = options.refetchInterval;
+          return {
+            data: undefined,
+            isFetching: false,
+            isError: false,
+            error: null,
+            refetch: () => {},
+          };
+        },
+      },
+    });
+    useMeal('meal-42');
+    assert.equal(capturedRefetchInterval({ state: { status: 'error', data: { status: 'PROCESSING' } } }), false);
+    assert.equal(capturedRefetchInterval({ state: { status: 'success', data: { status: 'PROCESSING' } } }), 3000);
+    assert.equal(capturedRefetchInterval({ state: { status: 'success', data: { status: 'SUCCESS' } } }), false);
+    assert.equal(capturedRefetchInterval({ state: { status: 'success', data: { status: 'FAILED' } } }), false);
+  }
+
+  // APP:REC-003: pure mapMealFromAPI separates wire APIMeal from domain Meal
+  {
+    const { mapMealFromAPI } = load('app/services/MealsService.ts', {
+      '@app/config/env': { env: { api: { url: 'https://api.foodiary.test/' } } },
+      './Service': { Service: class {} },
+    });
+    const rawMeal = {
+      id: 'm1',
+      status: 'SUCCESS',
+      inputType: 'PICTURE',
+      inputFileURL: '/uploads/m1.jpg',
+      name: 'Almoço',
+      icon: '🍽️',
+      foods: [{ name: 'Arroz', quantity: '100g', calories: 130, proteins: 2.5, carbohydrates: 28, fats: 0.3 }],
+      createdAt: '2026-10-18T12:30:00.000Z',
+    };
+    const mapped = mapMealFromAPI(rawMeal);
+    assert.equal(rawMeal.createdAt, '2026-10-18T12:30:00.000Z', 'mapMealFromAPI must not mutate input');
+    assert.ok(mapped.createdAt instanceof Date);
+    assert.equal(mapped.createdAt.toISOString(), '2026-10-18T12:30:00.000Z');
+    assert.equal(mapped.inputFileURL, 'https://api.foodiary.test/uploads/m1.jpg');
+    assert.notEqual(mapped.foods, rawMeal.foods);
+  }
+
+  // APP:REC-004 & APP:REC-005: getErrorMessage safely extracts API error messages with Portuguese fallback
+  {
+    const { getErrorMessage } = load('app/utils/getErrorMessage.ts');
+    assert.equal(
+      getErrorMessage({ response: { data: { error: 'Credenciais inválidas' } } }),
+      'Credenciais inválidas',
+    );
+    assert.equal(
+      getErrorMessage({ response: { data: { error: { message: 'Token expirado' } } } }),
+      'Token expirado',
+    );
+    assert.equal(
+      getErrorMessage({ response: { data: { message: 'Falha de validação' } } }),
+      'Falha de validação',
+    );
+    assert.equal(
+      getErrorMessage(new Error('network error'), 'Falha personalizada'),
+      'Falha personalizada',
+    );
+  }
+
+  console.log('App auth & audit regressions: APP-002..APP-010, ENG-001, ENG-002, APP:REC-001..006 OK');
 }
 
 main().catch(error => {
