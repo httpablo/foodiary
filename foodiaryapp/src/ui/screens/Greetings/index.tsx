@@ -20,6 +20,7 @@ export function Greetings() {
       source={greetingsBg}
       resizeMode="cover"
       style={styles.container}
+      imageStyle={styles.backgroundImage}
     >
       <SafeAreaView style={styles.content}>
         <Logo />
