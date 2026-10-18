@@ -12,6 +12,7 @@ export abstract class Service {
 
   protected static client = axios.create({
     baseURL: env.api.url,
+    timeout: 15_000,
   });
 
   static setAccessToken(accessToken: string) {

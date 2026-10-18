@@ -8,6 +8,7 @@ import { ForgotPasswordController } from '@application/controllers/auth/ForgotPa
 import { RefreshTokenController } from '@application/controllers/auth/RefreshTokenController';
 import { SignInController } from '@application/controllers/auth/SignInController';
 import { SignUpController } from '@application/controllers/auth/SignUpController';
+import { signInSchema } from '@application/controllers/auth/schemas/signInSchema';
 import { Profile } from '@application/entities/Profile';
 import { InvalidCredentials } from '@application/errors/application/InvalidCredentials';
 import { InvalidRefreshToken } from '@application/errors/application/InvalidRefreshToken';
@@ -24,7 +25,7 @@ import { Registry } from '@kernel/di/Registry';
 
 async function main() {
   const email = `auth-check-${Date.now()}@example.test`;
-  const firstPassword = 'original-password-123';
+  const firstPassword = ' original-password-123 ';
   const nextPassword = 'updated-password-456';
   const gateway = new LocalAuthGateway();
   const pool = getPostgresPool();
@@ -64,6 +65,18 @@ async function main() {
 
     const signIn = new SignInUseCase(gateway);
     await assert.rejects(signIn.execute({ email, password: 'wrong-password' }), InvalidCredentials);
+    await assert.rejects(signIn.execute({ email, password: firstPassword.trim() }), InvalidCredentials);
+    const paddedPayload = { email: ` \t${email.toUpperCase()}\n`, password: firstPassword };
+    assert.deepEqual(signInSchema.parse(paddedPayload), { email, password: firstPassword });
+    for (const invalidEmail of ['', ' ', 'bad', 'a b@example.test']) {
+      assert.equal(signInSchema.safeParse({ email: invalidEmail, password: firstPassword }).success, false);
+    }
+    const controllerResponse = await new SignInController(signIn).execute({
+      body: paddedPayload, accountId: null, params: {}, queryParams: {},
+    });
+    assert.equal(controllerResponse.statusCode, 200);
+    assert.ok(controllerResponse.body);
+    assert.equal(await gateway.verifyAccessToken(controllerResponse.body.accessToken), account.id);
     const signInTokens = await signIn.execute({ email: email.toUpperCase(), password: firstPassword });
     assert.equal(await gateway.verifyAccessToken(signInTokens.accessToken), account.id);
 
@@ -90,7 +103,7 @@ async function main() {
     assert.equal(await gateway.verifyAccessToken(newTokens.accessToken), account.id);
 
     // eslint-disable-next-line no-console
-    console.log('Local authentication, refresh rotation, and password reset: OK');
+    console.log('Local authentication, padded/case-insensitive email, exact passwords, refresh rotation, and password reset: OK');
   } finally {
     console.info = originalInfo;
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);

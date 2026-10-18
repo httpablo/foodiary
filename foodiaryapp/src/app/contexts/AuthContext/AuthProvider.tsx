@@ -26,7 +26,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const forceRender = useForceRender();
 
   const clearSession = useCallback(async () => {
-    await AuthTokensManager.clear();
     Service.removeAccessToken();
     Service.removeRefreshTokenHandler();
     setSignedUp(false);
@@ -34,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.setQueryData(['account'], null);
     queryClient.clear();
     forceRender();
+    await AuthTokensManager.clear();
   }, [queryClient, forceRender]);
 
   const signOut = useCallback(async () => {
@@ -98,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (payload: AuthService.SignInPayload) => {
     const tokens = await AuthService.signIn(payload);
-    await AuthTokensManager.save(tokens);
     try {
+      await AuthTokensManager.save(tokens);
       await setupAuth(tokens);
     } catch (error) {
       await clearSession();
@@ -110,9 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (payload: AuthService.SignUpPayload) => {
     const tokens = await AuthService.signUp(payload);
 
-    setSignedUp(true);
-    await AuthTokensManager.save(tokens);
     try {
+      await AuthTokensManager.save(tokens);
+      setSignedUp(true);
       await setupAuth(tokens);
     } catch (error) {
       await clearSession();
