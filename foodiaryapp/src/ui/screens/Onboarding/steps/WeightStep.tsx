@@ -44,6 +44,8 @@ export function WeightStep() {
               <Input
                 autoFocus
                 placeholder="80"
+                suffix="kg"
+                accessibilityLabel="Peso em quilogramas"
                 keyboardType="numeric"
                 formatter={formatDecimal}
                 value={field.value}

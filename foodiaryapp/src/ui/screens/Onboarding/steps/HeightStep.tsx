@@ -43,6 +43,8 @@ export function HeightStep() {
               <Input
                 autoFocus
                 placeholder="175"
+                suffix="cm"
+                accessibilityLabel="Altura em centímetros"
                 keyboardType="numeric"
                 formatter={formatDecimal}
                 value={field.value}
