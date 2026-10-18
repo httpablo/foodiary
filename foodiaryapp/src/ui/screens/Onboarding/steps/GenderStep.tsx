@@ -34,6 +34,7 @@ export function GenderStep() {
           name="gender"
           render={({ field, fieldState }) => (
             <RadioGroup
+              accessibilityLabel="Gênero"
               orientation="horizontal"
               value={field.value}
               onChangeValue={value => {
@@ -41,12 +42,13 @@ export function GenderStep() {
                 form.trigger('gender');
               }}
               error={!!fieldState.error}
+              errorMessage={fieldState.error?.message || 'Selecione uma opção para continuar.'}
             >
-              <RadioGroupItem value={Gender.MALE}>
+              <RadioGroupItem value={Gender.MALE} accessibilityLabel="Masculino">
                 <RadioGroupIcon>🧔‍♂️</RadioGroupIcon>
                 <RadioGroupLabel>Masculino</RadioGroupLabel>
               </RadioGroupItem>
-              <RadioGroupItem value={Gender.FEMALE}>
+              <RadioGroupItem value={Gender.FEMALE} accessibilityLabel="Feminino">
                 <RadioGroupIcon>👩‍🦰</RadioGroupIcon>
                 <RadioGroupLabel>Feminino</RadioGroupLabel>
               </RadioGroupItem>
@@ -56,7 +58,7 @@ export function GenderStep() {
       </StepContent>
 
       <StepFooter>
-        <Button size="icon" onPress={handleNextStep}>
+        <Button size="icon" accessibilityLabel="Avançar" onPress={handleNextStep}>
           <ArrowRightIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </StepFooter>

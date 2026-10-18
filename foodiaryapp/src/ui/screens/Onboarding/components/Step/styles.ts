@@ -17,9 +17,13 @@ export const styles = StyleSheet.create({
   subtitle: {
     textAlign: 'center',
   },
-  content: {
+  contentScroll: {
     flex: 1,
-    paddingBottom: 34,
+  },
+  content: {
+    flexGrow: 1,
+    paddingTop: 16,
+    paddingBottom: 24,
     justifyContent: 'flex-end',
     paddingHorizontal: 24,
   },
@@ -29,5 +33,7 @@ export const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
+    paddingVertical: 12,
+    flexShrink: 0,
   },
 });

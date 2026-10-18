@@ -1,16 +1,23 @@
 import { useUpdateGoals } from '@app/hooks/mutations/useUpdateGoals';
 import { useAccount } from '@app/hooks/queries/useAccount';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useRef } from 'react';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { editGoalsSchema, EditGoalsSchema } from './schema';
+
+export interface IGoalsFeedback {
+  type: 'success' | 'error';
+  message: string;
+}
 
 export function useEditGoalsController() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
   const { updateGoals, isLoading } = useUpdateGoals();
+  const { alert } = useConfirmDialog();
+  const [feedback, setFeedback] = useState<IGoalsFeedback | null>(null);
 
   const form = useForm<EditGoalsSchema>({
     resolver: zodResolver(editGoalsSchema),
@@ -36,6 +43,7 @@ export function useEditGoalsController() {
   }, [account, form.reset]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setFeedback(null);
     try {
       await updateGoals({
         calories: Number(data.calories),
@@ -44,9 +52,13 @@ export function useEditGoalsController() {
         fats: Number(data.fats),
       });
 
-      Alert.alert('Sucesso!', 'Metas atualizadas com sucesso');
+      const message = 'Metas atualizadas com sucesso.';
+      setFeedback({ type: 'success', message });
+      void alert({ title: 'Sucesso!', message });
     } catch {
-      Alert.alert('Erro', 'Não foi possível atualizar as metas');
+      const message = 'Não foi possível atualizar as metas.';
+      setFeedback({ type: 'error', message });
+      void alert({ title: 'Erro', message });
     }
   });
 
@@ -54,6 +66,7 @@ export function useEditGoalsController() {
     top,
     bottom,
     form,
+    feedback,
     handleSubmit,
     isSubmitting: form.formState.isSubmitting || isLoading,
   };

@@ -2,6 +2,7 @@ import { useUpdateProfile } from '@app/hooks/mutations/useUpdateProfile';
 import { useUpdateProfilePhoto } from '@app/hooks/mutations/useUpdateProfilePhoto';
 import { useAccount } from '@app/hooks/queries/useAccount';
 import { Gender } from '@app/types/Gender';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
@@ -9,17 +10,23 @@ import { useForm } from 'react-hook-form';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { isAxiosError } from 'axios';
-import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { editProfileSchema, EditProfileSchema } from './schema';
+
+export interface IProfileFeedback {
+  type: 'success' | 'error';
+  message: string;
+}
 
 export function useEditProfileController() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
   const { updateProfile, isLoading } = useUpdateProfile();
   const { updateProfilePhoto, isPhotoUploading } = useUpdateProfilePhoto();
+  const { alert } = useConfirmDialog();
   const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [feedback, setFeedback] = useState<IProfileFeedback | null>(null);
 
   const form = useForm<EditProfileSchema>({
     resolver: zodResolver(editProfileSchema),
@@ -47,6 +54,7 @@ export function useEditProfileController() {
   }, [account, form.reset]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setFeedback(null);
     try {
       await updateProfile({
         name: data.name,
@@ -56,9 +64,13 @@ export function useEditProfileController() {
         gender: data.gender,
       });
 
-      Alert.alert('Sucesso!', 'Perfil atualizado com sucesso');
+      const message = 'Perfil atualizado com sucesso.';
+      setFeedback({ type: 'success', message });
+      void alert({ title: 'Sucesso!', message });
     } catch {
-      Alert.alert('Erro', 'Não foi possível atualizar o perfil');
+      const message = 'Não foi possível atualizar o perfil.';
+      setFeedback({ type: 'error', message });
+      void alert({ title: 'Erro', message });
     }
   });
 
@@ -67,6 +79,7 @@ export function useEditProfileController() {
       return;
     }
 
+    setFeedback(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -81,7 +94,9 @@ export function useEditProfileController() {
       }
       setSelectedPhoto({ uri: asset.uri, width: asset.width, height: asset.height });
     } catch {
-      Alert.alert('Erro ao escolher a foto', 'Escolha outra imagem e tente novamente.');
+      const message = 'Escolha outra imagem e tente novamente.';
+      setFeedback({ type: 'error', message });
+      void alert({ title: 'Erro ao escolher a foto', message });
     }
   }
 
@@ -90,6 +105,7 @@ export function useEditProfileController() {
       return;
     }
 
+    setFeedback(null);
     setIsProcessingPhoto(true);
     let isUploading = false;
     try {
@@ -105,6 +121,7 @@ export function useEditProfileController() {
       isUploading = true;
       await updateProfilePhoto(photo.uri);
       setSelectedPhoto(null);
+      setFeedback({ type: 'success', message: 'Foto do perfil atualizada com sucesso.' });
     } catch (error) {
       const message = !isUploading
         ? 'Não foi possível recortar a foto. Escolha outra imagem e tente novamente.'
@@ -113,7 +130,8 @@ export function useEditProfileController() {
             ? `A API recusou a foto (HTTP ${error.response.status}). Tente novamente.`
             : 'Não foi possível conectar à API. Verifique a conexão e tente novamente.'
           : 'Não foi possível enviar a foto. Tente novamente.';
-      Alert.alert('Erro ao atualizar a foto', message);
+      setFeedback({ type: 'error', message });
+      void alert({ title: 'Erro ao atualizar a foto', message });
     } finally {
       setIsProcessingPhoto(false);
     }
@@ -123,6 +141,7 @@ export function useEditProfileController() {
     top,
     bottom,
     form,
+    feedback,
     handleSubmit,
     handlePickPhoto,
     handleConfirmPhoto,

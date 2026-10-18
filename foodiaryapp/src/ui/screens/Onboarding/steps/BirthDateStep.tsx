@@ -43,7 +43,12 @@ export function BirthDateStep() {
                   error={!!fieldState.error}
                 />
                 {fieldState.error && (
-                  <AppText size="sm" color={theme.colors.support.red}>
+                  <AppText
+                    size="sm"
+                    color={theme.colors.support.red}
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite"
+                  >
                     {fieldState.error.message}
                   </AppText>
                 )}
@@ -54,7 +59,7 @@ export function BirthDateStep() {
       </StepContent>
 
       <StepFooter>
-        <Button size="icon" onPress={handleNextStep}>
+        <Button size="icon" accessibilityLabel="Avançar" onPress={handleNextStep}>
           <ArrowRightIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </StepFooter>

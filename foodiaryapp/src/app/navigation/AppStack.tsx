@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { RouteProp } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -50,18 +51,20 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 
 export function AppStack() {
   return (
-    <Stack.Navigator
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Home" component={Home} />
-      <Stack.Screen name="MealDetails" component={MealDetails} />
-      <Stack.Screen name="EditMeal" component={EditMeal} />
-      <Stack.Screen name="EditGoals" component={EditGoals} />
-      <Stack.Screen name="Account" component={Account} />
-      <Stack.Screen name="EditProfile" component={EditProfile} />
-      <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
-      <Stack.Screen name="MealPlanner" component={MealPlanner} />
-      <Stack.Screen name="MealHistory" component={MealHistory} />
-    </Stack.Navigator>
+    <BottomSheetModalProvider>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="MealDetails" component={MealDetails} />
+        <Stack.Screen name="EditMeal" component={EditMeal} />
+        <Stack.Screen name="EditGoals" component={EditGoals} />
+        <Stack.Screen name="Account" component={Account} />
+        <Stack.Screen name="EditProfile" component={EditProfile} />
+        <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
+        <Stack.Screen name="MealPlanner" component={MealPlanner} />
+        <Stack.Screen name="MealHistory" component={MealHistory} />
+      </Stack.Navigator>
+    </BottomSheetModalProvider>
   );
 }

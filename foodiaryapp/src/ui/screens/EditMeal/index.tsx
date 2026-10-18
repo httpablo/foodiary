@@ -15,7 +15,7 @@ import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SavedFoodsPicker } from './SavedFoodsPicker';
 import { styles } from './styles';
@@ -28,6 +28,11 @@ type FoodDraft = {
   carbohydrates: string;
   fats: string;
 };
+
+interface IFeedbackMessage {
+  type: 'error' | 'success';
+  message: string;
+}
 
 const emptyFood = (id: number): FoodDraft => ({
   id, name: '', quantity: '', proteins: '', carbohydrates: '', fats: '',
@@ -55,6 +60,13 @@ function parseFood(food: FoodDraft): MealsService.UpdateMealPayload['foods'][num
   return { name, quantity, proteins, carbohydrates, fats };
 }
 
+function calcFoodCalories(food: FoodDraft): number {
+  const proteins = parseNutrient(food.proteins) ?? 0;
+  const carbohydrates = parseNutrient(food.carbohydrates) ?? 0;
+  const fats = parseNutrient(food.fats) ?? 0;
+  return Math.round(proteins * 4 + carbohydrates * 4 + fats * 9);
+}
+
 export function EditMeal() {
   const { params } = useRoute<AppStackRouteProps<'EditMeal'>>();
   const { goBack, reset } = useNavigation<AppStackNavigationProps>();
@@ -63,34 +75,49 @@ export function EditMeal() {
   const mealId = 'mealId' in params ? params.mealId : undefined;
   const title = isCreating ? 'Nova refeição' : isRepeating ? 'Repetir refeição' : 'Corrigir refeição';
   const { top, bottom } = useSafeAreaInsets();
-  const { meal, isLoading } = useMeal(mealId);
+  const { meal, isLoading, isError, refetch } = useMeal(mealId);
   const { updateMeal, isLoading: isUpdating } = useUpdateMeal(mealId);
   const { repeatMeal, isLoading: isRepeatingMeal } = useRepeatMeal(mealId);
   const { createManualMeal, isLoading: isCreatingMeal } = useCreateManualMeal();
   const { saveFood, isSavingFood } = useSaveFood();
   const isSaving = isUpdating || isRepeatingMeal || isCreatingMeal;
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [foods, setFoods] = useState<FoodDraft[]>(isCreating ? [emptyFood(0)] : []);
   const [showSavedFoods, setShowSavedFoods] = useState(false);
+  const [feedback, setFeedback] = useState<IFeedbackMessage | null>(null);
   const initializedMealId = useRef<string | null>(null);
   const nextFoodId = useRef(isCreating ? 1 : 0);
 
   useEffect(() => {
     if (meal && initializedMealId.current !== meal.id) {
       setName(meal.name);
-      setFoods(meal.foods.map(food => ({
-        id: nextFoodId.current++,
-        name: food.name,
-        quantity: food.quantity,
-        proteins: String(food.proteins),
-        carbohydrates: String(food.carbohydrates),
-        fats: String(food.fats),
-      })));
+      const initialFoods = meal.foods.length > 0
+        ? meal.foods.map(food => ({
+          id: nextFoodId.current++,
+          name: food.name,
+          quantity: food.quantity,
+          proteins: String(food.proteins),
+          carbohydrates: String(food.carbohydrates),
+          fats: String(food.fats),
+        }))
+        : [emptyFood(nextFoodId.current++)];
+      setFoods(initialFoods);
       initializedMealId.current = meal.id;
     }
   }, [meal]);
 
+  const totalCalories = foods.reduce((sum, food) => sum + calcFoodCalories(food), 0);
+
+  function handleNameChange(value: string) {
+    setName(value);
+    if (nameError) {
+      setNameError(undefined);
+    }
+  }
+
   function updateFood(id: number, field: Exclude<keyof FoodDraft, 'id'>, value: string) {
+    setFeedback(null);
     setFoods(current => current.map(food => (
       food.id === id ? { ...food, [field]: value } : food
     )));
@@ -98,7 +125,10 @@ export function EditMeal() {
 
   function addSavedFood(food: SavedFood) {
     if (foods.length >= 50) {
-      Alert.alert('Limite de alimentos', 'Uma refeição pode ter até 50 alimentos.');
+      setFeedback({
+        type: 'error',
+        message: 'Uma refeição pode ter até 50 alimentos.',
+      });
       return;
     }
     const draft = {
@@ -115,37 +145,63 @@ export function EditMeal() {
         && !current[0].proteins.trim() && !current[0].carbohydrates.trim() && !current[0].fats.trim()
         ? [draft] : [...current, draft]
     ));
+    setFeedback(null);
     setShowSavedFoods(false);
   }
 
   async function saveDraftFood(food: FoodDraft) {
     const parsed = parseFood(food);
     if (!parsed) {
-      Alert.alert('Confira o alimento', 'Preencha nome, quantidade e nutrientes antes de salvar.');
+      setFeedback({
+        type: 'error',
+        message: 'Preencha nome, quantidade e nutrientes antes de salvar.',
+      });
       return;
     }
     try {
       await saveFood(parsed);
-      Alert.alert('Alimento salvo', 'Você pode reutilizá-lo em outras refeições.');
+      setFeedback({
+        type: 'success',
+        message: 'Alimento salvo! Você pode reutilizá-lo em outras refeições.',
+      });
     } catch {
-      Alert.alert('Erro', 'Não foi possível salvar o alimento.');
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar o alimento.',
+      });
     }
   }
 
   async function save() {
+    setFeedback(null);
     if (!name.trim() || name.trim().length > 120) {
-      Alert.alert('Confira a refeição', 'Informe um nome com até 120 caracteres.');
+      const message = 'Informe um nome com até 120 caracteres.';
+      setNameError(message);
+      setFeedback({
+        type: 'error',
+        message,
+      });
       return;
     }
+    setNameError(undefined);
+
     if (foods.length < 1 || foods.length > 50) {
-      Alert.alert('Confira a refeição', 'Inclua pelo menos um alimento.');
+      setFeedback({
+        type: 'error',
+        message: foods.length > 50
+          ? 'Uma refeição pode ter até 50 alimentos.'
+          : 'Inclua pelo menos um alimento.',
+      });
       return;
     }
     const parsedFoods: MealsService.UpdateMealPayload['foods'] = [];
     for (const food of foods) {
       const parsed = parseFood(food);
       if (!parsed) {
-        Alert.alert('Confira os alimentos', 'Preencha nome, quantidade e nutrientes de cada alimento. Use valores entre 0 e 10000, com até duas casas decimais.');
+        setFeedback({
+          type: 'error',
+          message: 'Preencha nome, quantidade e nutrientes de cada alimento. Use valores entre 0 e 10000, com até duas casas decimais.',
+        });
         return;
       }
       parsedFoods.push(parsed);
@@ -160,27 +216,48 @@ export function EditMeal() {
         await createManualMeal({ ...payload, date: params.date, timezoneOffsetMinutes: params.timezoneOffsetMinutes });
         goBack();
       } else if (isRepeating) {
-        const mealId = await repeatMeal(payload);
+        const createdId = await repeatMeal(payload);
         reset({
           index: 1,
-          routes: [{ name: 'Home' }, { name: 'MealDetails', params: { mealId } }],
+          routes: [{ name: 'Home' }, { name: 'MealDetails', params: { mealId: createdId } }],
         });
       } else {
         await updateMeal(payload);
         goBack();
       }
     } catch {
-      Alert.alert('Erro', isCreating
-        ? 'Não foi possível cadastrar a refeição.'
-        : isRepeating ? 'Não foi possível repetir a refeição.' : 'Não foi possível salvar a refeição.');
+      setFeedback({
+        type: 'error',
+        message: isCreating
+          ? 'Não foi possível cadastrar a refeição.'
+          : isRepeating
+          ? 'Não foi possível repetir a refeição.'
+          : 'Não foi possível salvar a refeição.',
+      });
     }
   }
 
-  if (!isCreating && !meal && !isLoading) {
+  if (!isCreating && !isLoading && (isError || !meal)) {
     return (
       <View style={[styles.container, { paddingTop: top }]}>
         <AppHeader title={title} />
-        <AppText style={styles.message}>Refeição não encontrada.</AppText>
+        <View
+          style={styles.errorState}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          <AppText weight="medium">
+            {isError ? 'Não foi possível carregar os dados da refeição.' : 'Refeição não encontrada.'}
+          </AppText>
+          <View style={styles.errorActions}>
+            <Button onPress={() => void refetch()}>
+              Tentar novamente
+            </Button>
+            <Button variant="secondary" onPress={goBack}>
+              Voltar
+            </Button>
+          </View>
+        </View>
       </View>
     );
   }
@@ -199,16 +276,43 @@ export function EditMeal() {
       <AppHeader title={title} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <FormGroup label="Nome da refeição">
-            <Input value={name} onChangeText={setName} maxLength={120} placeholder="Ex.: Almoço" />
+          {feedback && (
+            <View
+              style={[
+                styles.feedbackBanner,
+                feedback.type === 'error' ? styles.feedbackBannerError : styles.feedbackBannerSuccess,
+              ]}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <AppText
+                size="sm"
+                color={feedback.type === 'error' ? theme.colors.support.red : theme.colors.lime[900]}
+              >
+                {feedback.message}
+              </AppText>
+            </View>
+          )}
+
+          <FormGroup label="Nome da refeição" error={nameError}>
+            <Input value={name} onChangeText={handleNameChange} maxLength={120} placeholder="Ex.: Almoço" />
           </FormGroup>
           <AppText color={theme.colors.gray[700]}>
             {isCreating
-              ? `Adicione os alimentos consumidos em ${params.date.split('-').reverse().join('/')}. As calorias são calculadas a partir dos nutrientes.`
+              ? `Adicione os alimentos consumidos em ${params.date.split('-').reverse().join('/')}. Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato).`
               : isRepeating
-              ? 'Revise os alimentos e as quantidades antes de adicionar esta refeição a hoje. As calorias são calculadas a partir dos nutrientes.'
-              : 'As calorias são calculadas a partir das proteínas, carboidratos e gorduras.'}
+              ? 'Revise os alimentos e as quantidades antes de adicionar esta refeição a hoje. Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato).'
+              : 'Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato). As calorias são calculadas a partir das proteínas, carboidratos e gorduras.'}
           </AppText>
+
+          <View style={styles.caloriePreview}>
+            <AppText size="sm" color={theme.colors.gray[700]}>
+              Total estimado da refeição (4P + 4C + 9G):
+            </AppText>
+            <AppText weight="semiBold">
+              {totalCalories} kcal
+            </AppText>
+          </View>
 
           <Button variant="secondary" onPress={() => setShowSavedFoods(value => !value)}>
             {showSavedFoods ? 'Ocultar alimentos salvos' : 'Usar alimento salvo'}
@@ -218,7 +322,9 @@ export function EditMeal() {
           {foods.map((food, index) => (
             <View key={food.id} style={styles.foodCard}>
               <View style={styles.foodHeader}>
-                <AppText weight="semiBold">Alimento {index + 1}</AppText>
+                <AppText weight="semiBold">
+                  Alimento {index + 1} · {calcFoodCalories(food)} kcal
+                </AppText>
                 {foods.length > 1 && (
                   <Button
                     variant="ghost"
@@ -233,21 +339,21 @@ export function EditMeal() {
                 <Input value={food.name} onChangeText={value => updateFood(food.id, 'name', value)} maxLength={120} placeholder="Ex.: Arroz" />
               </FormGroup>
               <FormGroup label="Quantidade">
-                <Input value={food.quantity} onChangeText={value => updateFood(food.id, 'quantity', value)} maxLength={80} placeholder="Ex.: 100 g" />
+                <Input value={food.quantity} onChangeText={value => updateFood(food.id, 'quantity', value)} maxLength={80} placeholder="Ex.: 150g, 1 prato" />
               </FormGroup>
               <View style={styles.nutrients}>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Proteínas">
+                  <FormGroup label="Proteínas totais (g)">
                     <Input value={food.proteins} onChangeText={value => updateFood(food.id, 'proteins', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Carboidratos">
+                  <FormGroup label="Carboidratos totais (g)">
                     <Input value={food.carbohydrates} onChangeText={value => updateFood(food.id, 'carbohydrates', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Gorduras">
+                  <FormGroup label="Gorduras totais (g)">
                     <Input value={food.fats} onChangeText={value => updateFood(food.id, 'fats', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
@@ -262,7 +368,11 @@ export function EditMeal() {
           </Button>
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: Math.max(bottom, 16) }]}>
-          <Button onPress={save} isLoading={isSaving} disabled={!isCreating && (meal?.status !== MealStatus.SUCCESS || !initializedMealId.current)}>
+          <Button
+            onPress={save}
+            isLoading={isSaving}
+            disabled={!isCreating && ((meal?.status !== MealStatus.SUCCESS && meal?.status !== MealStatus.FAILED) || !initializedMealId.current)}
+          >
             {isCreating ? 'Cadastrar refeição' : isRepeating ? 'Adicionar a hoje' : 'Salvar alterações'}
           </Button>
         </View>

@@ -34,22 +34,24 @@ export function GoalStep() {
           name="goal"
           render={({ field, fieldState }) => (
             <RadioGroup
+              accessibilityLabel="Objetivo"
               value={field.value}
               onChangeValue={value => {
                 field.onChange(value);
                 form.trigger('goal');
               }}
               error={!!fieldState.error}
+              errorMessage={fieldState.error?.message || 'Selecione uma opção para continuar.'}
             >
-              <RadioGroupItem value={Goal.LOSE}>
+              <RadioGroupItem value={Goal.LOSE} accessibilityLabel="Perder peso">
                 <RadioGroupIcon>🥦</RadioGroupIcon>
                 <RadioGroupLabel>Perder peso</RadioGroupLabel>
               </RadioGroupItem>
-              <RadioGroupItem value={Goal.MAINTAIN}>
+              <RadioGroupItem value={Goal.MAINTAIN} accessibilityLabel="Manter o peso">
                 <RadioGroupIcon>🍍</RadioGroupIcon>
                 <RadioGroupLabel>Manter o peso</RadioGroupLabel>
               </RadioGroupItem>
-              <RadioGroupItem value={Goal.GAIN}>
+              <RadioGroupItem value={Goal.GAIN} accessibilityLabel="Ganhar peso">
                 <RadioGroupIcon>🥩</RadioGroupIcon>
                 <RadioGroupLabel>Ganhar peso</RadioGroupLabel>
               </RadioGroupItem>
@@ -59,7 +61,7 @@ export function GoalStep() {
       </StepContent>
 
       <StepFooter>
-        <Button size="icon" onPress={handleNextStep}>
+        <Button size="icon" accessibilityLabel="Avançar" onPress={handleNextStep}>
           <ArrowRightIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </StepFooter>

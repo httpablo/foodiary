@@ -64,7 +64,7 @@ export function MealCard({ meal }: IMealCardProps) {
           <View style={styles.body}>
             <View style={styles.mealStatsRow}>
               <View style={[styles.mealStat, { flexBasis: 120 * fontScale }]}>
-                <AppText style={styles.statText} color={theme.colors.support.tomato} weight="medium">
+                <AppText style={styles.statText} color={theme.colors.supportText.tomato} weight="medium">
                   {summary.calories}
                 </AppText>
                 <AppText style={styles.statText} color={theme.colors.gray[700]}>
@@ -73,7 +73,7 @@ export function MealCard({ meal }: IMealCardProps) {
               </View>
 
               <View style={[styles.mealStat, { flexBasis: 120 * fontScale }]}>
-                <AppText style={styles.statText} color={theme.colors.support.teal} weight="medium">
+                <AppText style={styles.statText} color={theme.colors.supportText.teal} weight="medium">
                   {summary.proteins}g
                 </AppText>
                 <AppText style={styles.statText} color={theme.colors.gray[700]}>
@@ -84,7 +84,7 @@ export function MealCard({ meal }: IMealCardProps) {
 
             <View style={styles.mealStatsRow}>
               <View style={[styles.mealStat, { flexBasis: 120 * fontScale }]}>
-                <AppText style={styles.statText} color={theme.colors.support.yellow} weight="medium">
+                <AppText style={styles.statText} color={theme.colors.supportText.yellow} weight="medium">
                   {summary.carbohydrates}g
                 </AppText>
                 <AppText style={styles.statText} color={theme.colors.gray[700]}>
@@ -93,7 +93,7 @@ export function MealCard({ meal }: IMealCardProps) {
               </View>
 
               <View style={[styles.mealStat, { flexBasis: 120 * fontScale }]}>
-                <AppText style={styles.statText} color={theme.colors.support.orange} weight="medium">
+                <AppText style={styles.statText} color={theme.colors.supportText.orange} weight="medium">
                   {summary.fats}g
                 </AppText>
                 <AppText style={styles.statText} color={theme.colors.gray[700]}>

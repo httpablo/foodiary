@@ -22,6 +22,7 @@ export function Home() {
     meals,
     top,
     isLoading,
+    isError,
     handleNextDay,
     handlePreviousDay,
     handleRefresh,
@@ -39,6 +40,8 @@ export function Home() {
         date={date}
         meals={meals}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={handleRefresh}
         nextDay={handleNextDay}
         previousDay={handlePreviousDay}
       >

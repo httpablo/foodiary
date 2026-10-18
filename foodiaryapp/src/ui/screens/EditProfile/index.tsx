@@ -9,6 +9,7 @@ import { Input } from '@ui/components/Input';
 import { ProfileAvatar } from '@ui/components/ProfileAvatar';
 import { PhotoCropper } from '@ui/components/PhotoCropper';
 import { RadioGroup, RadioGroupIcon, RadioGroupItem, RadioGroupLabel } from '@ui/components/RadioGroup';
+import { theme } from '@ui/styles/theme';
 import { formatDecimal } from '@ui/utils/formatDecimal';
 import { Controller } from 'react-hook-form';
 import { CameraIcon } from 'lucide-react-native';
@@ -18,7 +19,19 @@ import { useEditProfileController } from './useEditProfileController';
 
 export function EditProfile() {
   const { account } = useAccount();
-  const { top, bottom, form, handleSubmit, handlePickPhoto, handleConfirmPhoto, cancelPhoto, selectedPhoto, isPhotoUploading, isSubmitting } = useEditProfileController();
+  const {
+    top,
+    bottom,
+    form,
+    feedback,
+    handleSubmit,
+    handlePickPhoto,
+    handleConfirmPhoto,
+    cancelPhoto,
+    selectedPhoto,
+    isPhotoUploading,
+    isSubmitting,
+  } = useEditProfileController();
 
   if (!account) {
     return null;
@@ -58,6 +71,24 @@ export function EditProfile() {
           </View>
 
           <View style={styles.form}>
+            {feedback && (
+              <View
+                style={[
+                  styles.feedbackBanner,
+                  feedback.type === 'error' ? styles.feedbackBannerError : styles.feedbackBannerSuccess,
+                ]}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+              >
+                <AppText
+                  size="sm"
+                  color={feedback.type === 'error' ? theme.colors.support.red : theme.colors.lime[900]}
+                >
+                  {feedback.message}
+                </AppText>
+              </View>
+            )}
+
             <Controller
               control={form.control}
               name="name"
@@ -145,12 +176,13 @@ export function EditProfile() {
                     value={field.value}
                     onChangeValue={field.onChange}
                     error={!!fieldState.error}
+                    errorMessage={fieldState.error?.message}
                   >
-                    <RadioGroupItem value={Gender.MALE}>
+                    <RadioGroupItem value={Gender.MALE} accessibilityLabel="Masculino">
                       <RadioGroupIcon>🧔‍♂️</RadioGroupIcon>
                       <RadioGroupLabel>Masculino</RadioGroupLabel>
                     </RadioGroupItem>
-                    <RadioGroupItem value={Gender.FEMALE}>
+                    <RadioGroupItem value={Gender.FEMALE} accessibilityLabel="Feminino">
                       <RadioGroupIcon>👩‍🦰</RadioGroupIcon>
                       <RadioGroupLabel>Feminino</RadioGroupLabel>
                     </RadioGroupItem>

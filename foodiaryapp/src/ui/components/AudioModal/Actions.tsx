@@ -63,6 +63,7 @@ export function Actions({
           size="icon"
           variant="neutral"
           rippleStyle="light"
+          accessibilityLabel="Iniciar gravação de áudio"
           onPress={onStartRecording}
         >
           <MicIcon size={20} color={theme.colors.lime[600]} />
@@ -86,6 +87,7 @@ export function Actions({
           size="icon"
           variant="neutral"
           rippleStyle="light"
+          accessibilityLabel="Parar gravação"
           onPress={onStopRecording}
         >
           <SquareIcon

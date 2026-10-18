@@ -44,4 +44,17 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[400],
   },
+  feedbackBanner: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  feedbackBannerError: {
+    backgroundColor: theme.colors.support['red/10'],
+    borderColor: theme.colors.support.red,
+  },
+  feedbackBannerSuccess: {
+    backgroundColor: theme.colors.lime['700/10'],
+    borderColor: theme.colors.lime[700],
+  },
 });

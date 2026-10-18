@@ -56,7 +56,7 @@ export function HeightStep() {
       </StepContent>
 
       <StepFooter>
-        <Button size="icon" onPress={handleNextStep}>
+        <Button size="icon" accessibilityLabel="Avançar" onPress={handleNextStep}>
           <ArrowRightIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </StepFooter>

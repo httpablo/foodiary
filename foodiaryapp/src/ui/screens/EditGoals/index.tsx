@@ -1,9 +1,11 @@
 import { useAccount } from '@app/hooks/queries/useAccount';
 import { useNavigation } from '@react-navigation/native';
 import { AppHeader } from '@ui/components/AppHeader';
+import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
+import { theme } from '@ui/styles/theme';
 import { Controller } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { styles } from './styles';
@@ -12,7 +14,7 @@ import { useEditGoalsController } from './useEditGoalsController';
 export function EditGoals() {
   const { account } = useAccount();
   const { goBack } = useNavigation();
-  const { top, bottom, form, handleSubmit, isSubmitting } = useEditGoalsController();
+  const { top, bottom, form, feedback, handleSubmit, isSubmitting } = useEditGoalsController();
 
   if (!account) {
     return null;
@@ -28,6 +30,23 @@ export function EditGoals() {
       >
         <ScrollView style={styles.content}>
           <View style={styles.form}>
+            {feedback && (
+              <View
+                style={[
+                  styles.feedbackBanner,
+                  feedback.type === 'error' ? styles.feedbackBannerError : styles.feedbackBannerSuccess,
+                ]}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+              >
+                <AppText
+                  size="sm"
+                  color={feedback.type === 'error' ? theme.colors.support.red : theme.colors.lime[900]}
+                >
+                  {feedback.message}
+                </AppText>
+              </View>
+            )}
             <Controller
               control={form.control}
               name="calories"

@@ -23,5 +23,13 @@ export const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
+    gap: 12,
+  },
+  feedbackBanner: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.support['red/10'],
+    borderWidth: 1,
+    borderColor: theme.colors.support.red,
   },
 });

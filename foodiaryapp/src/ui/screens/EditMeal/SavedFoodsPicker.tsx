@@ -3,38 +3,62 @@ import { useSavedFoods } from '@app/hooks/queries/useSavedFoods';
 import { SavedFood } from '@app/types/SavedFood';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { Trash2Icon } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { styles } from './styles';
 
 export function SavedFoodsPicker({ onSelect, disabled }: { onSelect: (food: SavedFood) => void; disabled: boolean }) {
   const [search, setSearch] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { savedFoods, isLoading, isError, refetch } = useSavedFoods();
   const { deleteSavedFood, isDeletingFood } = useDeleteSavedFood();
+  const { confirm } = useConfirmDialog();
   const query = search.trim().toLocaleLowerCase('pt-BR');
   const matches = savedFoods.filter(food => (
     `${food.name} ${food.quantity}`.toLocaleLowerCase('pt-BR').includes(query)
   ));
 
   function confirmDelete(food: SavedFood) {
-    Alert.alert('Excluir alimento salvo?', `${food.name} será removido da sua lista.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: async () => {
+    setDeleteError(null);
+    void confirm({
+      title: 'Excluir alimento salvo?',
+      message: `${food.name} será removido da sua lista.`,
+      cancelLabel: 'Cancelar',
+      confirmLabel: 'Excluir',
+      destructive: true,
+      onConfirm: async () => {
         try {
           await deleteSavedFood(food.id);
         } catch {
-          Alert.alert('Erro', 'Não foi possível excluir o alimento salvo.');
+          setDeleteError('Não foi possível excluir o alimento salvo. Tente novamente.');
         }
-      } },
-    ]);
+      },
+    });
   }
 
   return (
     <View style={styles.savedFoodsPanel}>
-      <Input value={search} onChangeText={setSearch} placeholder="Buscar alimento salvo" />
+      <Input
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar alimento salvo"
+        accessibilityLabel="Buscar alimento salvo"
+      />
+      {deleteError && (
+        <View
+          style={[styles.feedbackBanner, styles.feedbackBannerError]}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          <AppText size="sm" color={theme.colors.support.red}>
+            {deleteError}
+          </AppText>
+        </View>
+      )}
       {isLoading ? <ActivityIndicator color={theme.colors.lime[700]} /> : isError ? (
         <Button variant="ghost" onPress={() => refetch()}>Tentar carregar novamente</Button>
       ) : matches.length === 0 ? (
