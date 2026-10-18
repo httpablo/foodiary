@@ -44,7 +44,7 @@ export function MealDetails() {
         ListHeaderComponent={<Header meal={meal} isLoading={isLoading} />}
         ListEmptyComponent={(
           !isLoading ? null : (
-            <>
+            <View>
               <View style={styles.food}>
                 <Skeleton width="100%" height={24} colorMode="light" />
               </View>
@@ -54,7 +54,7 @@ export function MealDetails() {
               <View style={styles.food}>
                 <Skeleton width="100%" height={24} colorMode="light" />
               </View>
-            </>
+            </View>
           )
         )}
         renderItem={({ item: food }) => (

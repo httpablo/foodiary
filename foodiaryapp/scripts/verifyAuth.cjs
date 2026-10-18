@@ -80,7 +80,24 @@ async function main() {
     '@app/config/env': { env: { api: { url: 'http://127.0.0.1' } } },
     'react-native-base64': { decode: value => Buffer.from(value, 'base64').toString() },
   });
-  assert.equal(Service.client.defaults.timeout, 15_000);
+  assert.equal(Service.client.defaults.timeout, 0, 'shared client must not impose the auth deadline on uploads');
+  const authCalls = [];
+  const { AuthService } = load('app/services/AuthService.ts', {
+    './Service': { Service: class {
+      static client = { post: async (url, _payload, config) => {
+        authCalls.push({ url, timeout: config.timeout });
+        return { data: { accessToken: 'test', refreshToken: 'test' } };
+      } };
+    } },
+  });
+  await AuthService.signIn({ email: 'person@example.test', password });
+  await AuthService.signUp({});
+  await AuthService.refresh({ refreshToken: 'test' });
+  assert.deepEqual(authCalls, [
+    { url: '/auth/sign-in', timeout: 15000 },
+    { url: '/auth/sign-up', timeout: 15000 },
+    { url: '/auth/refresh-token', timeout: 15000 },
+  ]);
   Service.setAccessToken('old-test-token');
   let refreshCount = 0;
   Service.setRefreshTokenHandler(async () => {
@@ -101,6 +118,17 @@ async function main() {
   assert.equal(refreshCount, 1, 'sign-in failures do not trigger refresh');
   Service.removeRefreshTokenHandler();
   Service.removeAccessToken();
+
+  let uploadTimeout;
+  Service.client.defaults.adapter = async config => {
+    uploadTimeout = config.timeout;
+    return { data: {}, status: 204, headers: {}, config };
+  };
+  await Service.uploadPresignedPOST({
+    uploadSignature: Buffer.from(JSON.stringify({ url: '/meal-uploads/test', fields: {} })).toString('base64'),
+    file: { uri: 'file:///test.jpeg', type: 'image/jpeg', name: 'test.jpeg' },
+  });
+  assert.equal(uploadTimeout, 0, 'relative multipart uploads retain their original deadline behavior');
 
   // Exercise the real Axios HTTP timeout, not an adapter that invents one.
   const server = http.createServer((_request, response) => {

@@ -10,6 +10,7 @@ export class AuthService extends Service {
     const { data } = await this.client.post<AuthService.SignInResponse>(
       '/auth/sign-in',
       payload,
+      { timeout: 15_000 },
     );
 
     return data;
@@ -21,6 +22,7 @@ export class AuthService extends Service {
     const { data } = await this.client.post<AuthService.SignUpResponse>(
       '/auth/sign-up',
       payload,
+      { timeout: 15_000 },
     );
 
     return data;
@@ -32,6 +34,7 @@ export class AuthService extends Service {
     const { data } = await this.client.post<AuthService.RefreshResponse>(
       '/auth/refresh-token',
       payload,
+      { timeout: 15_000 },
     );
 
     return data;

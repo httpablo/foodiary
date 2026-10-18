@@ -175,6 +175,8 @@ async function main() {
     for (const query of ['limit=0', 'limit=51', 'limit=1.5', 'cursor=invalid']) {
       assert.equal((await request(`/meals/history?${query}`, { headers: historyHeaders })).status, 400);
     }
+    const invalidYearCursor = Buffer.from(JSON.stringify({ createdAt: '0000-01-01T00:00:00Z', id: 'a' })).toString('base64url');
+    assert.equal((await request(`/meals/history?cursor=${invalidYearCursor}`, { headers: historyHeaders })).status, 400);
     const weekPath = '/meals/weekly-summary?startDate=2026-10-05&timezoneOffsetMinutes=180';
     assert.equal((await request(weekPath)).status, 401);
     assert.equal((await request('/meals/weekly-summary?startDate=2026-10-06', {

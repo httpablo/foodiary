@@ -1,7 +1,7 @@
 import z from 'zod';
 
 const cursorSchema = z.object({
-  createdAt: z.string().datetime(),
+  createdAt: z.string().datetime().refine(value => !value.startsWith('0000-'), 'Invalid cursor year'),
   id: z.string().regex(/^[a-zA-Z0-9]+$/).max(128),
 });
 

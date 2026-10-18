@@ -7,6 +7,7 @@ export class AccountsService extends Service {
   static async getMe(): Promise<AccountsService.GetMeResponse> {
     const { data } = await this.client.get<AccountsService.GetMeApiResponse>(
       '/me',
+      { timeout: 15_000 },
     );
 
     return {

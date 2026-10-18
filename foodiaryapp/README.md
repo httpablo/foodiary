@@ -22,3 +22,5 @@ Em **Cadastrar sua refeição**, escolha **Cadastrar manualmente** para registra
 Em **E se eu comer isso?**, na tela inicial de hoje, escolha alimentos salvos e ajuste cada um para meia, uma ou duas porções. O app mostra o total projetado do dia antes de registrar a refeição. A simulação usa os nutrientes salvos e não faz chamadas à OpenAI.
 
 Os tokens de login ficam no SecureStore do aparelho. Na primeira abertura após a atualização, o app migra automaticamente uma sessão antiga salva no AsyncStorage.
+
+O login aceita espaços nas extremidades do e-mail e diferenças entre maiúsculas e minúsculas, preservando a senha exatamente como digitada. Falhas de credenciais, conexão e servidor aparecem no formulário. As chamadas de autenticação e carregamento da conta têm limite de 15 segundos; esse limite não se aplica aos uploads. Para verificar a lógica de autenticação sem dispositivo, execute `node scripts/verifyAuth.cjs`; esse teste usa simulações nas fronteiras nativas. Execute também `pnpm typecheck` e os testes de integração da API descritos no README dela.
