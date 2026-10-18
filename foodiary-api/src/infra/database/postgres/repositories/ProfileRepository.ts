@@ -1,4 +1,5 @@
 import { Profile } from '@application/entities/Profile';
+import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { getPostgresPool } from '../pool';
 
@@ -56,7 +57,7 @@ export class ProfileRepository {
   }
 
   async save(profile: Profile): Promise<void> {
-    await getPostgresPool().query(
+    const result = await getPostgresPool().query(
       `UPDATE profiles
        SET name = $2, birth_date = $3, gender = $4, height = $5, weight = $6
        WHERE account_id = $1`,
@@ -69,5 +70,8 @@ export class ProfileRepository {
         profile.weight,
       ],
     );
+    if (result.rowCount === 0) {
+      throw new ResourceNotFound('Profile not found.');
+    }
   }
 }

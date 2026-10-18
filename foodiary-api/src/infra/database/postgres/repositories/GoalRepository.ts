@@ -1,4 +1,5 @@
 import { Goal } from '@application/entities/Goal';
+import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { getPostgresPool } from '../pool';
 
@@ -35,11 +36,14 @@ export class GoalRepository {
   }
 
   async save(goal: Goal): Promise<void> {
-    await getPostgresPool().query(
+    const result = await getPostgresPool().query(
       `UPDATE goals
        SET calories = $2, proteins = $3, carbohydrates = $4, fats = $5
        WHERE account_id = $1`,
       [goal.accountId, goal.calories, goal.proteins, goal.carbohydrates, goal.fats],
     );
+    if (result.rowCount === 0) {
+      throw new ResourceNotFound('Profile not found.');
+    }
   }
 }

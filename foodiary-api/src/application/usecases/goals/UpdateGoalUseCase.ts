@@ -1,4 +1,5 @@
-import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
+import { Goal } from '@application/entities/Goal';
+import { BadRequest } from '@application/errors/http/BadRequest';
 import { GoalRepository } from '@infra/database/postgres/repositories/GoalRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
@@ -13,18 +14,22 @@ export class UpdateGoalUseCase {
     fats,
     proteins,
   }: UpdateGoalUseCase.Input): Promise<UpdateGoalUseCase.Output> {
-    const goal = await this.goalRepository.findByAccountId(accountId);
-
-    if (!goal) {
-      throw new ResourceNotFound('Profile not found.');
+    if (
+      !Number.isFinite(calories) || calories < 0 || calories > 50000
+      || !Number.isFinite(proteins) || proteins < 0 || proteins > 5000
+      || !Number.isFinite(carbohydrates) || carbohydrates < 0 || carbohydrates > 10000
+      || !Number.isFinite(fats) || fats < 0 || fats > 5000
+    ) {
+      throw new BadRequest('Goal values must be finite numbers within valid bounds.');
     }
 
-    goal.calories = calories;
-    goal.carbohydrates = carbohydrates;
-    goal.proteins = proteins;
-    goal.fats = fats;
-
-    await this.goalRepository.save(goal);
+    await this.goalRepository.save(new Goal({
+      accountId,
+      calories,
+      carbohydrates,
+      proteins,
+      fats,
+    }));
   }
 }
 

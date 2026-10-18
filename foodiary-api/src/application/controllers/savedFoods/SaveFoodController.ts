@@ -1,18 +1,17 @@
-import { mealFoodSchema } from '@application/controllers/meals/schemas/updateMealSchema';
 import { Controller } from '@application/contracts/Controller';
-import { SavedFoodRepository } from '@infra/database/postgres/repositories/SavedFoodRepository';
+import { SaveFoodUseCase } from '@application/usecases/savedFoods/SaveFoodUseCase';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { Schema } from '@kernel/decorators/Schema';
-import { z } from 'zod';
+import { SaveFoodBody, saveFoodSchema } from './schemas/saveFoodSchema';
 
-@Injectable([SavedFoodRepository])
-@Schema(mealFoodSchema)
+@Injectable([SaveFoodUseCase])
+@Schema(saveFoodSchema)
 export class SaveFoodController extends Controller<'private', { id: string }> {
-  constructor(private readonly repository: SavedFoodRepository) {
+  constructor(private readonly saveFoodUseCase: SaveFoodUseCase) {
     super();
   }
 
-  protected override async handle({ accountId, body }: Controller.Request<'private', z.infer<typeof mealFoodSchema>>) {
-    return { statusCode: 200, body: { id: await this.repository.save(accountId, body) } };
+  protected override async handle({ accountId, body }: Controller.Request<'private', SaveFoodBody>) {
+    return { statusCode: 200, body: await this.saveFoodUseCase.execute({ accountId, food: body }) };
   }
 }

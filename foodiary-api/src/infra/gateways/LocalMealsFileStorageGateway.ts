@@ -1,12 +1,15 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import KSUID from 'ksuid';
 
 import { Meal } from '@application/entities/Meal';
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { Injectable } from '@kernel/decorators/Injectable';
+import {
+  openSignedStorageFile,
+  resolveSafeStoragePath,
+  signStorageFileKey,
+} from './shared/signedFileStorage';
 
 const fileKeyPattern = /^[a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|png|webp|m4a|mp4|webm|ogg|wav)$/;
 const maxFileBytes = 10 * 1024 * 1024;
@@ -73,7 +76,7 @@ export class LocalMealsFileStorageGateway {
   getFileURL(fileKey: string): string {
     this.filePath(fileKey);
     const expires = Math.floor(Date.now() / 1000) + 60 * 60;
-    const signature = this.sign(fileKey, expires);
+    const signature = signStorageFileKey({ fileKey, expires });
     return `/meal-files/${fileKey}?expires=${expires}&signature=${signature}`;
   }
 
@@ -97,48 +100,28 @@ export class LocalMealsFileStorageGateway {
 
   async open(fileKey: string, expiresValue: string | null, signature: string | null) {
     const destination = this.filePath(fileKey);
-    const expires = Number(expiresValue);
-
-    if (!expiresValue || !Number.isSafeInteger(expires) || expires < Date.now() / 1000
-      || !signature || !/^[a-f0-9]{64}$/.test(signature)) {
+    const opened = await openSignedStorageFile({
+      destination,
+      fileKey,
+      expiresValue,
+      signature,
+    });
+    if (!opened) {
       return null;
     }
 
-    const expected = this.sign(fileKey, expires);
-    if (!timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))) {
-      return null;
-    }
-
-    try {
-      const metadata = await stat(destination);
-      if (!metadata.isFile()) {
-        return null;
-      }
-      return {
-        stream: createReadStream(destination),
-        size: metadata.size,
-        contentType: LocalMealsFileStorageGateway.getMimeTypeFromFileKey(fileKey),
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return null;
-      }
-      throw error;
-    }
+    return {
+      ...opened,
+      contentType: LocalMealsFileStorageGateway.getMimeTypeFromFileKey(fileKey),
+    };
   }
 
   private filePath(fileKey: string): string {
-    if (!fileKeyPattern.test(fileKey)) {
-      throw new BadRequest('Invalid file key.');
-    }
-    return path.join(process.env.LOCAL_MEALS_DIR ?? path.resolve(process.cwd(), 'data/meals'), fileKey);
-  }
-
-  private sign(fileKey: string, expires: number): string {
-    const secret = process.env.AUTH_JWT_SECRET;
-    if (!secret || Buffer.byteLength(secret) < 32) {
-      throw new Error('AUTH_JWT_SECRET must contain at least 32 bytes.');
-    }
-    return createHmac('sha256', secret).update(`${fileKey}:${expires}`).digest('hex');
+    return resolveSafeStoragePath({
+      baseDir: process.env.LOCAL_MEALS_DIR ?? path.resolve(process.cwd(), 'data/meals'),
+      fileKey,
+      pattern: fileKeyPattern,
+      invalidMessage: 'Invalid file key.',
+    });
   }
 }

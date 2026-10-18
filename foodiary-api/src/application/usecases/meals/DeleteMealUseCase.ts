@@ -17,11 +17,11 @@ export class DeleteMealUseCase {
     if (!meal) {
       throw new ResourceNotFound('Meal not found.');
     }
-    if (meal.status !== Meal.Status.SUCCESS) {
-      throw new BadRequest('Only completed meals can be deleted.');
+    if (meal.status === Meal.Status.QUEUED || meal.status === Meal.Status.PROCESSING) {
+      throw new BadRequest('Meals that are queued or processing cannot be deleted.');
     }
 
-    const deleted = await this.mealRepository.deleteCompleted({ accountId, mealId });
+    const deleted = await this.mealRepository.deleteDeletable({ accountId, mealId });
     if (!deleted) {
       throw new BadRequest('Meal is no longer available for deletion.');
     }

@@ -10,6 +10,8 @@ import { SignInController } from '@application/controllers/auth/SignInController
 import { SignUpController } from '@application/controllers/auth/SignUpController';
 import { signInSchema } from '@application/controllers/auth/schemas/signInSchema';
 import { Profile } from '@application/entities/Profile';
+import { BadRequest } from '@application/errors/http/BadRequest';
+import { ServiceUnavailable } from '@application/errors/http/ServiceUnavailable';
 import { InvalidCredentials } from '@application/errors/application/InvalidCredentials';
 import { InvalidRefreshToken } from '@application/errors/application/InvalidRefreshToken';
 import { ConfirmForgotPasswordUseCase } from '@application/usecases/auth/ConfirmForgotPasswordUseCase';
@@ -43,11 +45,44 @@ async function main() {
       assert.ok(registry.resolve(controller));
     }
 
-    const signupTokens = await new SignUpUseCase(
+    const signUpUseCase = new SignUpUseCase(
       gateway,
       new AccountRepository(),
       new SignUpUnitOfWork(),
-    ).execute({
+    );
+
+    await assert.rejects(
+      signUpUseCase.execute({
+        account: { email, password: firstPassword },
+        profile: {
+          name: 'Auth Test',
+          birthDate: new Date('0000-01-01T00:00:00.000Z'),
+          gender: Profile.Gender.FEMALE,
+          height: 170,
+          weight: 65,
+          activityLevel: Profile.ActivityLevel.LIGHT,
+          goal: Profile.Goal.MAINTAIN,
+        },
+      }),
+      BadRequest,
+    );
+    await assert.rejects(
+      signUpUseCase.execute({
+        account: { email, password: firstPassword },
+        profile: {
+          name: 'Auth Test',
+          birthDate: new Date('2099-01-01T00:00:00.000Z'),
+          gender: Profile.Gender.FEMALE,
+          height: 170,
+          weight: 65,
+          activityLevel: Profile.ActivityLevel.LIGHT,
+          goal: Profile.Goal.MAINTAIN,
+        },
+      }),
+      BadRequest,
+    );
+
+    const signupTokens = await signUpUseCase.execute({
       account: { email, password: firstPassword },
       profile: {
         name: 'Auth Test',
@@ -62,6 +97,14 @@ async function main() {
     const account = await new AccountRepository().findByEmail(email);
     assert.ok(account);
     assert.equal(await gateway.verifyAccessToken(signupTokens.accessToken), account.id);
+
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      await assert.rejects(new ForgotPasswordUseCase(gateway).execute({ email }), ServiceUnavailable);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
 
     const signIn = new SignInUseCase(gateway);
     await assert.rejects(signIn.execute({ email, password: 'wrong-password' }), InvalidCredentials);

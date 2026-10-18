@@ -1,6 +1,6 @@
 import { Meal } from '@application/entities/Meal';
-import { calculateFoodCalories } from '@application/entities/calculateFoodCalories';
 import { BadRequest } from '@application/errors/http/BadRequest';
+import { mealNameSchema, normalizeFoods } from '@application/shared/foodSchema';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
@@ -9,6 +9,11 @@ export class CreateManualMealUseCase {
   constructor(private readonly mealRepository: MealRepository) {}
 
   async execute({ accountId, name, foods, date, timezoneOffsetMinutes }: CreateManualMealUseCase.Input): Promise<{ mealId: string }> {
+    const parsedName = mealNameSchema.safeParse(name);
+    if (!parsedName.success) {
+      throw new BadRequest('Meal name must not be empty.');
+    }
+
     const now = new Date();
     const localToday = new Date(now.getTime() - timezoneOffsetMinutes * 60_000).toISOString().slice(0, 10);
     if (date > localToday) {
@@ -24,12 +29,9 @@ export class CreateManualMealUseCase {
       status: Meal.Status.SUCCESS,
       inputType: Meal.InputType.MANUAL,
       inputFileKey: null,
-      name,
+      name: parsedName.data,
       icon: '🍽️',
-      foods: foods.map(food => ({
-        ...food,
-        calories: calculateFoodCalories(food),
-      })),
+      foods: normalizeFoods(foods),
     });
     await this.mealRepository.create(meal);
     return { mealId: meal.id };

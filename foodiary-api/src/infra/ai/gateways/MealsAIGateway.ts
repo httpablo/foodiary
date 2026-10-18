@@ -2,6 +2,7 @@ import OpenAI, { toFile } from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
 
 import { Meal } from '@application/entities/Meal';
+import { foodInputSchema, mealNameSchema, normalizeFoods } from '@application/shared/foodSchema';
 import { LocalMealsFileStorageGateway } from '@infra/gateways/LocalMealsFileStorageGateway';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { ChatCompletionContentPart } from 'openai/resources/index';
@@ -9,7 +10,7 @@ import z from 'zod';
 import { getImagePrompt } from '../prompts/getImagePrompt';
 import { getTextPrompt } from '../prompts/getTextPrompt';
 
-const mealSchema = z.object({
+const openAIMealSchema = z.object({
   name: z.string(),
   icon: z.string(),
   foods: z.array(z.object({
@@ -22,11 +23,30 @@ const mealSchema = z.object({
   })),
 });
 
+const aiMealResultSchema = z.object({
+  name: mealNameSchema,
+  icon: z.string().trim().min(1).max(32),
+  foods: z.array(foodInputSchema).min(1).max(50),
+});
+
 @Injectable([LocalMealsFileStorageGateway])
 export class MealsAIGateway {
   constructor(private readonly mealsFileStorageGateway: LocalMealsFileStorageGateway) { }
 
   private client: OpenAI | undefined;
+
+  static validateAndNormalizeResult(mealId: string, raw: unknown): MealsAIGateway.ProcessMealResult {
+    const parsed = aiMealResultSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new Error(`Invalid analysis returned for meal "${mealId}".`);
+    }
+
+    return {
+      name: parsed.data.name,
+      icon: parsed.data.icon,
+      foods: normalizeFoods(parsed.data.foods),
+    };
+  }
 
   private getClient(): OpenAI {
     this.client ??= new OpenAI();
@@ -78,7 +98,7 @@ export class MealsAIGateway {
   }: MealsAIGateway.CallAIParams): Promise<MealsAIGateway.ProcessMealResult> {
     const response = await this.getClient().chat.completions.create({
       model: 'gpt-4.1-mini',
-      response_format: zodResponseFormat(mealSchema, 'meal'),
+      response_format: zodResponseFormat(openAIMealSchema, 'meal'),
       messages: [
         {
           role: 'system',
@@ -97,13 +117,14 @@ export class MealsAIGateway {
       throw new Error(`No analysis returned for meal "${mealId}".`);
     }
 
-    const { success, data } = mealSchema.safeParse(JSON.parse(json));
-
-    if (!success) {
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(json);
+    } catch {
       throw new Error(`Invalid analysis returned for meal "${mealId}".`);
     }
 
-    return data;
+    return MealsAIGateway.validateAndNormalizeResult(mealId, parsedJson);
   }
 
   private async transcribe(audioFile: Buffer, ext = 'm4a', mimeType = 'audio/m4a') {

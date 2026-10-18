@@ -53,6 +53,22 @@ async function main() {
     assert.equal(invalid.status, 400);
     assert.equal((await invalid.json()).error.code, 'VALIDATION');
 
+    for (const invalidBirthDate of ['0000-01-01', '2099-01-01']) {
+      const badBirthDateSignup = await request('/auth/sign-up', json('POST', {
+        account: { email, password },
+        profile: {
+          name: 'HTTP Test',
+          birthDate: invalidBirthDate,
+          gender: 'FEMALE',
+          goal: 'MAINTAIN',
+          height: 170,
+          weight: 65,
+          activityLevel: 'LIGHT',
+        },
+      }));
+      assert.equal(badBirthDateSignup.status, 400);
+    }
+
     const signup = await request('/auth/sign-up', json('POST', {
       account: { email, password },
       profile: {
@@ -184,6 +200,20 @@ async function main() {
     assert.equal((await request('/profiles', json('PUT', {
       name: 'Invalid', birthDate: '2000-01-01', gender: 'FEMALE', height: 0, weight: 66,
     }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', json('PUT', {
+      name: 'Invalid', birthDate: '0000-01-01', gender: 'FEMALE', height: 171, weight: 66,
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', json('PUT', {
+      name: 'Invalid', birthDate: '2099-01-01', gender: 'FEMALE', height: 171, weight: 66,
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+      },
+      body: '{"name":"Teste","birthDate":"1990-01-01","gender":"MALE","height":1e400,"weight":80}',
+    })).status, 400);
 
     const goal = await request('/goals', json('PUT', {
       calories: 2100,
@@ -195,13 +225,24 @@ async function main() {
     assert.equal((await request('/goals', json('PUT', {
       calories: -1, proteins: 110, carbohydrates: 220, fats: 75,
     }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/goals', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+      },
+      body: '{"calories":1e400,"proteins":150,"carbohydrates":200,"fats":60}',
+    })).status, 400);
 
     const updatedMe = await request('/me', { headers: { Authorization: `Bearer ${signupTokens.accessToken}` } });
     const updatedAccount = await updatedMe.json();
     assert.equal(updatedAccount.profile.name, 'Updated');
+    assert.equal(Number.isFinite(updatedAccount.profile.height), true);
+    assert.equal(Number.isFinite(updatedAccount.profile.weight), true);
     assert.equal(new URL(updatedAccount.profile.photoUrl, base).pathname,
       new URL(secondPhotoUrl, base).pathname);
     assert.equal(updatedAccount.goal.calories, 2100);
+    assert.equal(Number.isFinite(updatedAccount.goal.calories), true);
 
     const meals = await request('/meals?date=2026-10-09', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -534,6 +575,32 @@ async function main() {
     });
     assert.equal(webmDay.status, 200);
     assert.equal((await webmDay.json()).meals.some((item: { id: string }) => item.id === webmMealId), true);
+
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'PROCESSING']);
+    assert.equal((await request(`/meals/${webmMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 400);
+
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'FAILED']);
+    assert.equal((await request(`/meals/${webmMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(webmMeal.inputFileURL)).status, 404);
+
+    const uploadingMealResponse = await request('/meals', json('POST', {
+      file: { type: 'image/jpeg', size: picture.length },
+    }, signupTokens.accessToken));
+    assert.equal(uploadingMealResponse.status, 201);
+    const { mealId: uploadingMealId } = await uploadingMealResponse.json();
+    assert.equal((await request(`/meals/${uploadingMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(`/meals/${uploadingMealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 404);
 
     // eslint-disable-next-line no-console
     console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, profile photo, and signed file access: OK');

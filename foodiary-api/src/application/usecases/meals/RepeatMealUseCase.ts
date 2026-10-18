@@ -1,7 +1,7 @@
 import { Meal } from '@application/entities/Meal';
-import { calculateFoodCalories } from '@application/entities/calculateFoodCalories';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { BadRequest } from '@application/errors/http/BadRequest';
+import { mealNameSchema, normalizeFoods } from '@application/shared/foodSchema';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
@@ -10,6 +10,11 @@ export class RepeatMealUseCase {
   constructor(private readonly mealRepository: MealRepository) {}
 
   async execute({ accountId, sourceMealId, name, foods }: RepeatMealUseCase.Input): Promise<{ mealId: string }> {
+    const parsedName = mealNameSchema.safeParse(name);
+    if (!parsedName.success) {
+      throw new BadRequest('Meal name must not be empty.');
+    }
+
     const source = await this.mealRepository.findById({ accountId, mealId: sourceMealId });
     if (!source) {
       throw new ResourceNotFound('Meal not found.');
@@ -23,12 +28,9 @@ export class RepeatMealUseCase {
       status: Meal.Status.SUCCESS,
       inputType: Meal.InputType.MANUAL,
       inputFileKey: null,
-      name,
+      name: parsedName.data,
       icon: source.icon,
-      foods: foods.map(food => ({
-        ...food,
-        calories: calculateFoodCalories(food),
-      })),
+      foods: normalizeFoods(foods),
     });
     await this.mealRepository.create(repeated);
     return { mealId: repeated.id };

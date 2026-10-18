@@ -1,15 +1,13 @@
 import { Profile } from '@application/entities/Profile';
+import { birthDateSchema } from '@application/shared/birthDateSchema';
 import z from 'zod';
 
 export const updateProfileSchema = z.object({
-  name: z.string().min(1, '"name" is required'),
-  birthDate: z.string()
-    .min(1, '"birthDate" is required')
-    .date('"birthDate" should be a valid date (YYYY-MM-DD)')
-    .transform(date => new Date(date)),
+  name: z.string().trim().min(1, '"name" is required').max(120),
+  birthDate: birthDateSchema,
   gender: z.nativeEnum(Profile.Gender),
-  height: z.number().positive(),
-  weight: z.number().positive(),
+  height: z.number().finite().positive().max(300),
+  weight: z.number().finite().positive().max(700),
 });
 
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;

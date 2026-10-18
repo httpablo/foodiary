@@ -29,6 +29,7 @@ import { ErrorCode } from '@application/errors/ErrorCode';
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { HttpError } from '@application/errors/http/HttpError';
+import { TooManyRequests } from '@application/errors/http/TooManyRequests';
 import { Unauthorized } from '@application/errors/http/Unauthorized';
 import { Meal } from '@application/entities/Meal';
 import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
@@ -159,9 +160,47 @@ async function accountIdFromRequest(request: IncomingMessage): Promise<string> {
   }
 }
 
+const publicAuthPaths = new Set([
+  '/auth/sign-up',
+  '/auth/sign-in',
+  '/auth/refresh-token',
+  '/auth/forgot-password',
+  '/auth/forgot-password/confirm',
+  '/auth/sign-out',
+]);
+
 export function createHttpServer(): Server {
+  new LocalAuthGateway().assertConfigured();
+
   const allowedWebOrigins = new Set((process.env.ALLOWED_WEB_ORIGINS ?? '')
     .split(',').map(value => value.trim()).filter(Boolean));
+  const authRateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+  const checkAuthRateLimit = (request: IncomingMessage, pathname: string) => {
+    const windowMs = 60_000;
+    const maxRequests = Number(process.env.AUTH_RATE_LIMIT_MAX ?? 120);
+    const now = Date.now();
+    const clientIp = request.socket.remoteAddress ?? 'unknown';
+    const key = `${clientIp}:${pathname}`;
+    const current = authRateLimitBuckets.get(key);
+
+    if (!current || current.resetAt <= now) {
+      if (authRateLimitBuckets.size > 5000) {
+        for (const [k, v] of authRateLimitBuckets.entries()) {
+          if (v.resetAt <= now) {
+            authRateLimitBuckets.delete(k);
+          }
+        }
+      }
+      authRateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+      return;
+    }
+
+    current.count += 1;
+    if (current.count > maxRequests) {
+      throw new TooManyRequests('Too many authentication attempts. Please try again later.');
+    }
+  };
 
   return createServer(async (request, response) => {
     try {
@@ -179,6 +218,10 @@ export function createHttpServer(): Server {
       }
 
       const url = new URL(request.url ?? '/', 'http://localhost');
+
+      if (request.method === 'POST' && publicAuthPaths.has(url.pathname)) {
+        checkAuthRateLimit(request, url.pathname);
+      }
 
       if (request.method === 'GET' && url.pathname === '/health') {
         await getPostgresPool().query('SELECT 1');
