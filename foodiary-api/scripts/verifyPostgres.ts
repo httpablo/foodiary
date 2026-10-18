@@ -114,8 +114,7 @@ async function main() {
     );
     const { rowCount } = await pool.query('SELECT 1 FROM accounts WHERE id = $1', [duplicate.id]);
     assert.equal(rowCount, 0);
-
-    // eslint-disable-next-line no-console
+     
     console.log('PostgreSQL repositories and signup transaction: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE id = $1', [id]);
@@ -124,7 +123,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error(error);
   process.exitCode = 1;
 });

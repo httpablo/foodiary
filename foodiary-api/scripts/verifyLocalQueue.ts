@@ -136,8 +136,7 @@ async function main() {
     await queue.recoverExpired(accountId);
     assert.equal((await meals.findById({ accountId, mealId: interrupted.id }))?.status, Meal.Status.QUEUED);
     assert.equal((await queue.claimNext(accountId))?.id, interrupted.id);
-
-    // eslint-disable-next-line no-console
+     
     console.log('PostgreSQL meal queue, retries, and interrupted-job recovery: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE id = $1', [accountId]);
@@ -147,7 +146,7 @@ async function main() {
 }
 
 main().catch(error => {
-  // eslint-disable-next-line no-console
+   
   console.error(error);
   process.exitCode = 1;
 });

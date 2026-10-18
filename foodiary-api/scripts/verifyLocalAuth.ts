@@ -144,8 +144,7 @@ async function main() {
     await assert.rejects(refresh.execute({ refreshToken: rotated.refreshToken }), InvalidRefreshToken);
     const newTokens = await signIn.execute({ email, password: nextPassword });
     assert.equal(await gateway.verifyAccessToken(newTokens.accessToken), account.id);
-
-    // eslint-disable-next-line no-console
+     
     console.log('Local authentication, padded/case-insensitive email, exact passwords, refresh rotation, and password reset: OK');
   } finally {
     console.info = originalInfo;
@@ -155,7 +154,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error(error);
   process.exitCode = 1;
 });

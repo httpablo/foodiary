@@ -601,8 +601,7 @@ async function main() {
     assert.equal((await request(`/meals/${uploadingMealId}`, {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     })).status, 404);
-
-    // eslint-disable-next-line no-console
+     
     console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
@@ -615,7 +614,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error(error);
   process.exitCode = 1;
 });
