@@ -1,10 +1,17 @@
 import { ActivityLevel } from '@app/types/ActivityLevel';
 import { Gender } from '@app/types/Gender';
 import { Goal } from '@app/types/Goal';
+import { normalizeDecimalInput, parseDecimal } from '@ui/utils/parseDecimal';
 import z from 'zod';
 
-const positiveNumber = (requiredMessage: string) => z.string().min(1, requiredMessage)
-  .refine(value => Number.isFinite(Number(value)) && Number(value) > 0, 'Informe um valor maior que zero');
+const positiveNumber = (requiredMessage: string) => z.string()
+  .trim()
+  .min(1, requiredMessage)
+  .overwrite(normalizeDecimalInput)
+  .refine((value) => {
+    const parsed = parseDecimal(value);
+    return Number.isFinite(parsed) && parsed > 0;
+  }, 'Informe um valor maior que zero');
 
 export const onboardingSchema = z.object({
   goal: z.enum(Goal),
