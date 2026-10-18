@@ -4,11 +4,11 @@ import { Service } from './Service';
 export class ProfileService extends Service {
   static async updateProfilePhoto(uri: string): Promise<void> {
     const form = new FormData();
-    form.append('file', {
+    await this.appendFileToFormData(form, {
       uri,
       name: 'profile.jpeg',
       type: 'image/jpeg',
-    } as any);
+    });
     await this.client.put('/profile-photo', form, {
       headers: { 'Content-Type': false },
     });

@@ -9,7 +9,7 @@ const processingStatuses = [
 ];
 
 export function useMeal(mealId?: string) {
-  const { data: meal, isFetching } = useQuery({
+  const { data: meal, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['meal', mealId],
     staleTime: Infinity,
     enabled: !!mealId,
@@ -37,5 +37,8 @@ export function useMeal(mealId?: string) {
     meal,
     isLoading: isFetching,
     isProcessing,
+    isError,
+    error,
+    refetch,
   };
 }
