@@ -42,7 +42,7 @@ export function Header() {
           onPress={() => navigate('WeeklySummary')}
           style={styles.weeklyLink}
         >
-          <AppText weight="medium" color={theme.colors.lime[900]}>Ver resumo semanal</AppText>
+          <AppText weight="medium" style={{ flex: 1 }} color={theme.colors.lime[900]}>Ver resumo semanal</AppText>
           <ChevronRightIcon size={20} color={theme.colors.lime[900]} />
         </Pressable>
 

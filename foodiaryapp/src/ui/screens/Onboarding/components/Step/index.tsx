@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@ui/components/AppText';
@@ -46,9 +46,13 @@ interface IStepContentProps {
 
 export function StepContent({ children, position = 'end' }: IStepContentProps) {
   return (
-    <View style={[styles.content, position === 'center' && styles.contentCenter]}>
+    <ScrollView
+      style={styles.contentScroll}
+      contentContainerStyle={[styles.content, position === 'center' && styles.contentCenter]}
+      keyboardShouldPersistTaps="handled"
+    >
       {children}
-    </View>
+    </ScrollView>
   );
 }
 

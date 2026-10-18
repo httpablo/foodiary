@@ -34,4 +34,26 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.support.red,
   },
+  errorState: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  errorActions: {
+    width: '100%',
+    maxWidth: 320,
+    gap: 12,
+  },
+  failedBanner: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: theme.colors.support['red/10'],
+    borderWidth: 1,
+    borderColor: theme.colors.support.red,
+    gap: 8,
+  },
 });

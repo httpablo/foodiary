@@ -26,7 +26,25 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
   ] = useState<null | 'audio' | 'picture'>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
+  function isFutureDate() {
+    if (formatDateToAPI(date) > formatDateToAPI(new Date())) {
+      const message = 'Não é possível cadastrar uma refeição em um dia futuro.';
+      setFeedbackError(message);
+      void alert({
+        title: 'Escolha outra data',
+        message,
+      });
+      return true;
+    }
+
+    return false;
+  }
+
   function handleOpenModal(modal: 'audio' | 'picture') {
+    if (isFutureDate()) {
+      return;
+    }
+
     setFeedbackError(null);
     setCurrentVisibleModal(modal);
   }
@@ -36,13 +54,7 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
   }
 
   function handleManualMeal() {
-    if (formatDateToAPI(date) > formatDateToAPI(new Date())) {
-      const message = 'Não é possível cadastrar uma refeição em um dia futuro.';
-      setFeedbackError(message);
-      void alert({
-        title: 'Escolha outra data',
-        message,
-      });
+    if (isFutureDate()) {
       return;
     }
 
@@ -60,12 +72,14 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
     <View style={styles.container}>
       <AudioModal
         visible={currentVisibleModal === 'audio'}
+        date={date}
         onClose={handleCloseModal}
         onCreate={onCreate}
         onManualCreate={handleManualMeal}
       />
       <PictureModal
         visible={currentVisibleModal === 'picture'}
+        date={date}
         onClose={handleCloseModal}
         onCreate={onCreate}
         onManualCreate={handleManualMeal}

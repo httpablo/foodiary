@@ -52,4 +52,22 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.lime['700/10'],
     borderColor: theme.colors.lime[700],
   },
+  errorState: {
+    padding: 20,
+    gap: 16,
+  },
+  errorActions: {
+    gap: 12,
+  },
+  caloriePreview: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.gray[100],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
 });

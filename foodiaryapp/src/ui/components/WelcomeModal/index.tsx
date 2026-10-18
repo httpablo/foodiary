@@ -27,14 +27,19 @@ const goalsMap: Record<Goal, { icon: string; label: string }> = {
 };
 
 export function WelcomeModal() {
-  const { signedUp } = useAuth();
+  const { signedUp, acknowledgeWelcome } = useAuth();
   const { account } = useAccount();
   const [visible, setVisible] = useState(signedUp);
 
-  const goal = goalsMap[account!.profile.goal];
+  if (!account) {
+    return null;
+  }
+
+  const goal = goalsMap[account.profile.goal];
 
   function handleClose() {
     setVisible(false);
+    acknowledgeWelcome();
   }
 
   return (
@@ -70,7 +75,7 @@ export function WelcomeModal() {
                     </Text>
                     {' '}está pronto!
                   </AppText>
-                  <AppText color={theme.colors.gray[600]} align="center">
+                  <AppText color={theme.colors.gray[400]} align="center">
                     Essas são suas metas diárias iniciais. Você pode ajustá-las quando quiser.
                   </AppText>
                 </View>
@@ -78,10 +83,11 @@ export function WelcomeModal() {
 
               <View style={styles.body}>
                 <GoalStats
-                  calories={{ goal: account!.goal.calories }}
-                  proteins={{ goal: account!.goal.proteins }}
-                  carbohydrates={{ goal: account!.goal.carbohydrates }}
-                  fats={{ goal: account!.goal.fats }}
+                  variant="dark"
+                  calories={{ goal: account.goal.calories }}
+                  proteins={{ goal: account.goal.proteins }}
+                  carbohydrates={{ goal: account.goal.carbohydrates }}
+                  fats={{ goal: account.goal.fats }}
                 />
               </View>
             </View>

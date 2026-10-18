@@ -13,6 +13,7 @@ export type AudioModalState = 'idle' | 'recording' | 'recorded';
 
 interface IUseAudioModalControllerParams {
   visible: boolean;
+  date?: Date;
   onClose: () => void;
   onCreate?: () => void;
   onManualCreate?: () => void;
@@ -34,6 +35,7 @@ function getAudioErrorMessage(error: unknown): string {
 
 export function useAudioModalController({
   visible,
+  date,
   onClose,
   onCreate,
   onManualCreate,
@@ -225,11 +227,11 @@ export function useAudioModalController({
 
     memoizedOnClose.current();
     memoizedOnCreate.current?.();
-    const now = new Date();
+    const targetDate = date ?? new Date();
     navigate('EditMeal', {
       mode: 'create',
-      date: formatDateToAPI(now),
-      timezoneOffsetMinutes: now.getTimezoneOffset(),
+      date: formatDateToAPI(targetDate),
+      timezoneOffsetMinutes: targetDate.getTimezoneOffset(),
     });
   }
 
@@ -238,9 +240,20 @@ export function useAudioModalController({
       return;
     }
 
+    const targetDate = date ?? new Date();
+    if (formatDateToAPI(targetDate) > formatDateToAPI(new Date())) {
+      const message = 'Não é possível cadastrar uma refeição em um dia futuro.';
+      setErrorMessage(message);
+      void alert({
+        title: 'Escolha outra data',
+        message,
+      });
+      return;
+    }
+
     try {
       setErrorMessage(null);
-      await createMeal(audioUri);
+      await createMeal({ uri: audioUri, date: targetDate });
     } catch {
       const message = 'Ocorreu um erro ao criar a sua refeição! Tente novamente.';
       setErrorMessage(message);

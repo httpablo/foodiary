@@ -60,6 +60,13 @@ function parseFood(food: FoodDraft): MealsService.UpdateMealPayload['foods'][num
   return { name, quantity, proteins, carbohydrates, fats };
 }
 
+function calcFoodCalories(food: FoodDraft): number {
+  const proteins = parseNutrient(food.proteins) ?? 0;
+  const carbohydrates = parseNutrient(food.carbohydrates) ?? 0;
+  const fats = parseNutrient(food.fats) ?? 0;
+  return Math.round(proteins * 4 + carbohydrates * 4 + fats * 9);
+}
+
 export function EditMeal() {
   const { params } = useRoute<AppStackRouteProps<'EditMeal'>>();
   const { goBack, reset } = useNavigation<AppStackNavigationProps>();
@@ -68,7 +75,7 @@ export function EditMeal() {
   const mealId = 'mealId' in params ? params.mealId : undefined;
   const title = isCreating ? 'Nova refeição' : isRepeating ? 'Repetir refeição' : 'Corrigir refeição';
   const { top, bottom } = useSafeAreaInsets();
-  const { meal, isLoading } = useMeal(mealId);
+  const { meal, isLoading, isError, refetch } = useMeal(mealId);
   const { updateMeal, isLoading: isUpdating } = useUpdateMeal(mealId);
   const { repeatMeal, isLoading: isRepeatingMeal } = useRepeatMeal(mealId);
   const { createManualMeal, isLoading: isCreatingMeal } = useCreateManualMeal();
@@ -85,17 +92,22 @@ export function EditMeal() {
   useEffect(() => {
     if (meal && initializedMealId.current !== meal.id) {
       setName(meal.name);
-      setFoods(meal.foods.map(food => ({
-        id: nextFoodId.current++,
-        name: food.name,
-        quantity: food.quantity,
-        proteins: String(food.proteins),
-        carbohydrates: String(food.carbohydrates),
-        fats: String(food.fats),
-      })));
+      const initialFoods = meal.foods.length > 0
+        ? meal.foods.map(food => ({
+          id: nextFoodId.current++,
+          name: food.name,
+          quantity: food.quantity,
+          proteins: String(food.proteins),
+          carbohydrates: String(food.carbohydrates),
+          fats: String(food.fats),
+        }))
+        : [emptyFood(nextFoodId.current++)];
+      setFoods(initialFoods);
       initializedMealId.current = meal.id;
     }
   }, [meal]);
+
+  const totalCalories = foods.reduce((sum, food) => sum + calcFoodCalories(food), 0);
 
   function handleNameChange(value: string) {
     setName(value);
@@ -225,11 +237,27 @@ export function EditMeal() {
     }
   }
 
-  if (!isCreating && !meal && !isLoading) {
+  if (!isCreating && !isLoading && (isError || !meal)) {
     return (
       <View style={[styles.container, { paddingTop: top }]}>
         <AppHeader title={title} />
-        <AppText style={styles.message}>Refeição não encontrada.</AppText>
+        <View
+          style={styles.errorState}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          <AppText weight="medium">
+            {isError ? 'Não foi possível carregar os dados da refeição.' : 'Refeição não encontrada.'}
+          </AppText>
+          <View style={styles.errorActions}>
+            <Button onPress={() => void refetch()}>
+              Tentar novamente
+            </Button>
+            <Button variant="secondary" onPress={goBack}>
+              Voltar
+            </Button>
+          </View>
+        </View>
       </View>
     );
   }
@@ -271,11 +299,20 @@ export function EditMeal() {
           </FormGroup>
           <AppText color={theme.colors.gray[700]}>
             {isCreating
-              ? `Adicione os alimentos consumidos em ${params.date.split('-').reverse().join('/')}. As calorias são calculadas a partir dos nutrientes.`
+              ? `Adicione os alimentos consumidos em ${params.date.split('-').reverse().join('/')}. Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato).`
               : isRepeating
-              ? 'Revise os alimentos e as quantidades antes de adicionar esta refeição a hoje. As calorias são calculadas a partir dos nutrientes.'
-              : 'As calorias são calculadas a partir das proteínas, carboidratos e gorduras.'}
+              ? 'Revise os alimentos e as quantidades antes de adicionar esta refeição a hoje. Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato).'
+              : 'Informe os nutrientes totais da porção descrita em Quantidade (ex.: 150g, 1 prato). As calorias são calculadas a partir das proteínas, carboidratos e gorduras.'}
           </AppText>
+
+          <View style={styles.caloriePreview}>
+            <AppText size="sm" color={theme.colors.gray[700]}>
+              Total estimado da refeição (4P + 4C + 9G):
+            </AppText>
+            <AppText weight="semiBold">
+              {totalCalories} kcal
+            </AppText>
+          </View>
 
           <Button variant="secondary" onPress={() => setShowSavedFoods(value => !value)}>
             {showSavedFoods ? 'Ocultar alimentos salvos' : 'Usar alimento salvo'}
@@ -285,7 +322,9 @@ export function EditMeal() {
           {foods.map((food, index) => (
             <View key={food.id} style={styles.foodCard}>
               <View style={styles.foodHeader}>
-                <AppText weight="semiBold">Alimento {index + 1}</AppText>
+                <AppText weight="semiBold">
+                  Alimento {index + 1} · {calcFoodCalories(food)} kcal
+                </AppText>
                 {foods.length > 1 && (
                   <Button
                     variant="ghost"
@@ -300,21 +339,21 @@ export function EditMeal() {
                 <Input value={food.name} onChangeText={value => updateFood(food.id, 'name', value)} maxLength={120} placeholder="Ex.: Arroz" />
               </FormGroup>
               <FormGroup label="Quantidade">
-                <Input value={food.quantity} onChangeText={value => updateFood(food.id, 'quantity', value)} maxLength={80} placeholder="Ex.: 100 g" />
+                <Input value={food.quantity} onChangeText={value => updateFood(food.id, 'quantity', value)} maxLength={80} placeholder="Ex.: 150g, 1 prato" />
               </FormGroup>
               <View style={styles.nutrients}>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Proteínas">
+                  <FormGroup label="Proteínas totais (g)">
                     <Input value={food.proteins} onChangeText={value => updateFood(food.id, 'proteins', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Carboidratos">
+                  <FormGroup label="Carboidratos totais (g)">
                     <Input value={food.carbohydrates} onChangeText={value => updateFood(food.id, 'carbohydrates', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
                 <View style={styles.nutrient}>
-                  <FormGroup label="Gorduras">
+                  <FormGroup label="Gorduras totais (g)">
                     <Input value={food.fats} onChangeText={value => updateFood(food.id, 'fats', value)} keyboardType="decimal-pad" suffix="g" />
                   </FormGroup>
                 </View>
@@ -329,7 +368,11 @@ export function EditMeal() {
           </Button>
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: Math.max(bottom, 16) }]}>
-          <Button onPress={save} isLoading={isSaving} disabled={!isCreating && (meal?.status !== MealStatus.SUCCESS || !initializedMealId.current)}>
+          <Button
+            onPress={save}
+            isLoading={isSaving}
+            disabled={!isCreating && ((meal?.status !== MealStatus.SUCCESS && meal?.status !== MealStatus.FAILED) || !initializedMealId.current)}
+          >
             {isCreating ? 'Cadastrar refeição' : isRepeating ? 'Adicionar a hoje' : 'Salvar alterações'}
           </Button>
         </View>

@@ -12,12 +12,13 @@ import { useAudioModalController } from './useAudioModalController';
 
 interface IAudioModalProps {
   visible: boolean;
+  date?: Date;
   onClose: () => void;
   onCreate?: () => void;
   onManualCreate?: () => void;
 }
 
-export function AudioModal({ visible, onClose, onCreate, onManualCreate }: IAudioModalProps) {
+export function AudioModal({ visible, date, onClose, onCreate, onManualCreate }: IAudioModalProps) {
   const {
     state,
     isLoading,
@@ -30,7 +31,7 @@ export function AudioModal({ visible, onClose, onCreate, onManualCreate }: IAudi
     handleRetryPermission,
     handleManualEntry,
     handleConfirm,
-  } = useAudioModalController({ visible, onClose, onCreate, onManualCreate });
+  } = useAudioModalController({ visible, date, onClose, onCreate, onManualCreate });
 
   const isRecording = state === 'recording';
 

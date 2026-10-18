@@ -11,6 +11,7 @@ import { useConfirmDialog } from '../ConfirmDialog';
 
 interface IUsePictureModalControllerParams {
   visible: boolean;
+  date?: Date;
   onClose: () => void;
   onCreate?: () => void;
   onManualCreate?: () => void;
@@ -18,6 +19,7 @@ interface IUsePictureModalControllerParams {
 
 export function usePictureModalController({
   visible,
+  date,
   onClose,
   onCreate,
   onManualCreate,
@@ -145,11 +147,11 @@ export function usePictureModalController({
 
     memoizedOnClose.current();
     memoizedOnCreate.current?.();
-    const now = new Date();
+    const targetDate = date ?? new Date();
     navigate('EditMeal', {
       mode: 'create',
-      date: formatDateToAPI(now),
-      timezoneOffsetMinutes: now.getTimezoneOffset(),
+      date: formatDateToAPI(targetDate),
+      timezoneOffsetMinutes: targetDate.getTimezoneOffset(),
     });
   }
 
@@ -158,9 +160,20 @@ export function usePictureModalController({
       return;
     }
 
+    const targetDate = date ?? new Date();
+    if (formatDateToAPI(targetDate) > formatDateToAPI(new Date())) {
+      const message = 'Não é possível cadastrar uma refeição em um dia futuro.';
+      setCameraError(message);
+      void alert({
+        title: 'Escolha outra data',
+        message,
+      });
+      return;
+    }
+
     try {
       setCameraError(null);
-      await createMeal(photoUri);
+      await createMeal({ uri: photoUri, date: targetDate });
     } catch {
       const message = 'Ocorreu um erro ao criar a sua refeição! Tente novamente.';
       setCameraError(message);

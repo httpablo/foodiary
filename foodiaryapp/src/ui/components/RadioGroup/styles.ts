@@ -10,6 +10,7 @@ export const styles = StyleSheet.create({
   },
   containerHorizontal: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   errorMessage: {
     marginTop: 4,
@@ -35,8 +36,9 @@ export const styles = StyleSheet.create({
   },
   horizontalItem: {
     flexDirection: 'column',
-    paddingVertical: 32,
+    paddingVertical: 24,
     flex: 1,
+    minWidth: 120,
   },
   icon: {
     backgroundColor: theme.colors.gray[200],
@@ -51,6 +53,7 @@ export const styles = StyleSheet.create({
   },
   label: {
     letterSpacing: -0.32,
+    flexShrink: 1,
   },
   textCenter: {
     textAlign: 'center',

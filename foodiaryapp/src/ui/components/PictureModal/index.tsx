@@ -12,12 +12,13 @@ import { usePictureModalController } from './usePictureModalController';
 
 interface IPictureModalProps {
   visible: boolean;
+  date?: Date;
   onClose: () => void;
   onCreate?: () => void;
   onManualCreate?: () => void;
 }
 
-export function PictureModal({ visible, onClose, onCreate, onManualCreate }: IPictureModalProps) {
+export function PictureModal({ visible, date, onClose, onCreate, onManualCreate }: IPictureModalProps) {
   const {
     isLoading,
     permission,
@@ -30,7 +31,7 @@ export function PictureModal({ visible, onClose, onCreate, onManualCreate }: IPi
     handleTryAgain,
     handleManualEntry,
     handleConfirm,
-  } = usePictureModalController({ visible, onClose, onCreate, onManualCreate });
+  } = usePictureModalController({ visible, date, onClose, onCreate, onManualCreate });
 
   const isPermissionBlocked = permission?.granted === false && permission.canAskAgain === false;
   const isPermissionDenied = permission?.granted === false && permission.status === 'denied';
