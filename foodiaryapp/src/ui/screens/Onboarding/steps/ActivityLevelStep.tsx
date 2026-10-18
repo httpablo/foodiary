@@ -41,14 +41,16 @@ export function ActivityLevelStep() {
           name="activityLevel"
           render={({ field, fieldState }) => (
             <RadioGroup
+              accessibilityLabel="Nível de atividade"
               value={field.value}
               onChangeValue={value => {
                 field.onChange(value);
                 form.trigger('activityLevel');
               }}
               error={!!fieldState.error}
+              errorMessage={fieldState.error?.message || 'Selecione uma opção para continuar.'}
             >
-              <RadioGroupItem value={ActivityLevel.SEDENTARY}>
+              <RadioGroupItem value={ActivityLevel.SEDENTARY} accessibilityLabel="Sedentário, pouco ou nenhum exercício">
                 <RadioGroupIcon>🛋️</RadioGroupIcon>
                 <RadioGroupItemInfo>
                   <RadioGroupLabel>Sedentário</RadioGroupLabel>
@@ -56,7 +58,7 @@ export function ActivityLevelStep() {
                 </RadioGroupItemInfo>
               </RadioGroupItem>
 
-              <RadioGroupItem value={ActivityLevel.LIGHT}>
+              <RadioGroupItem value={ActivityLevel.LIGHT} accessibilityLabel="Leve, exercício leve 1-2x por semana">
                 <RadioGroupIcon>🥬</RadioGroupIcon>
                 <RadioGroupItemInfo>
                   <RadioGroupLabel>Leve</RadioGroupLabel>
@@ -64,7 +66,7 @@ export function ActivityLevelStep() {
                 </RadioGroupItemInfo>
               </RadioGroupItem>
 
-              <RadioGroupItem value={ActivityLevel.MODERATE}>
+              <RadioGroupItem value={ActivityLevel.MODERATE} accessibilityLabel="Moderado, exercício moderado 3-5x por semana">
                 <RadioGroupIcon>⚡</RadioGroupIcon>
                 <RadioGroupItemInfo>
                   <RadioGroupLabel>Moderado</RadioGroupLabel>
@@ -72,7 +74,7 @@ export function ActivityLevelStep() {
                 </RadioGroupItemInfo>
               </RadioGroupItem>
 
-              <RadioGroupItem value={ActivityLevel.HEAVY}>
+              <RadioGroupItem value={ActivityLevel.HEAVY} accessibilityLabel="Intenso, exercício intenso 6-7x por semana">
                 <RadioGroupIcon>🔥</RadioGroupIcon>
                 <RadioGroupItemInfo>
                   <RadioGroupLabel>Intenso</RadioGroupLabel>
@@ -80,7 +82,7 @@ export function ActivityLevelStep() {
                 </RadioGroupItemInfo>
               </RadioGroupItem>
 
-              <RadioGroupItem value={ActivityLevel.ATHLETE}>
+              <RadioGroupItem value={ActivityLevel.ATHLETE} accessibilityLabel="Atleta, treino profissional diário">
                 <RadioGroupIcon>🏋️</RadioGroupIcon>
                 <RadioGroupItemInfo>
                   <RadioGroupLabel>Atleta</RadioGroupLabel>
@@ -93,7 +95,7 @@ export function ActivityLevelStep() {
       </ScrollView>
 
       <StepFooter>
-        <Button size="icon" onPress={handleNextStep}>
+        <Button size="icon" accessibilityLabel="Avançar" onPress={handleNextStep}>
           <ArrowRightIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </StepFooter>

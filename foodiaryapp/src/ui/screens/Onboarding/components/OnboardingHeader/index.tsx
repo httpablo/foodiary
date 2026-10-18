@@ -26,7 +26,12 @@ export function OnboardingHeader() {
 
   return (
     <View style={[styles.container, { marginTop: top }]}>
-      <Button variant="ghost" size="icon" onPress={previousStep}>
+      <Button
+        variant="ghost"
+        size="icon"
+        accessibilityLabel="Voltar"
+        onPress={previousStep}
+      >
         <ChevronLeftIcon size={20} color={theme.colors.black[700]} />
       </Button>
 

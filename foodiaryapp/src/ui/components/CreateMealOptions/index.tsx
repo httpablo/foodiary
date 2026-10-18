@@ -4,9 +4,10 @@ import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { CameraIcon, LucideIcon, MicIcon, PencilIcon } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { AppText } from '../AppText';
 import { AudioModal } from '../AudioModal';
+import { useConfirmDialog } from '../ConfirmDialog';
 import { PictureModal } from '../PictureModal';
 import { styles } from './styles';
 
@@ -18,12 +19,15 @@ interface ICreateMealOptionsProps {
 
 export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateMealOptionsProps) {
   const { navigate } = useNavigation<AppStackNavigationProps>();
+  const { alert } = useConfirmDialog();
   const [
     currentVisibleModal,
     setCurrentVisibleModal,
   ] = useState<null | 'audio' | 'picture'>(null);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   function handleOpenModal(modal: 'audio' | 'picture') {
+    setFeedbackError(null);
     setCurrentVisibleModal(modal);
   }
 
@@ -33,9 +37,17 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
 
   function handleManualMeal() {
     if (formatDateToAPI(date) > formatDateToAPI(new Date())) {
-      Alert.alert('Escolha outra data', 'Não é possível cadastrar uma refeição em um dia futuro.');
+      const message = 'Não é possível cadastrar uma refeição em um dia futuro.';
+      setFeedbackError(message);
+      void alert({
+        title: 'Escolha outra data',
+        message,
+      });
       return;
     }
+
+    setFeedbackError(null);
+    setCurrentVisibleModal(null);
     onCreate?.();
     navigate('EditMeal', {
       mode: 'create',
@@ -50,12 +62,22 @@ export function CreateMealOptions({ date, disabled = false, onCreate }: ICreateM
         visible={currentVisibleModal === 'audio'}
         onClose={handleCloseModal}
         onCreate={onCreate}
+        onManualCreate={handleManualMeal}
       />
       <PictureModal
         visible={currentVisibleModal === 'picture'}
         onClose={handleCloseModal}
         onCreate={onCreate}
+        onManualCreate={handleManualMeal}
       />
+
+      {feedbackError && (
+        <View accessibilityRole="alert" accessibilityLiveRegion="polite">
+          <AppText size="sm" color={theme.colors.support.red}>
+            {feedbackError}
+          </AppText>
+        </View>
+      )}
 
       <View style={styles.mediaOptions}>
         <OptionButton
@@ -96,6 +118,9 @@ export function OptionButton({ icon: Icon, label, disabled, onPress, horizontal 
       <Pressable
         onPress={onPress}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: !!disabled }}
         android_ripple={{ color: 'rgba(0, 0, 0, 0.1)', foreground: true }}
         style={({ pressed }) => [
           styles.button,

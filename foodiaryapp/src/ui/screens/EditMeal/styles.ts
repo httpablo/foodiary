@@ -36,6 +36,20 @@ export const styles = StyleSheet.create({
     borderTopColor: theme.colors.gray[400],
     paddingHorizontal: 20,
     paddingTop: 12,
+    gap: 10,
   },
   message: { margin: 20 },
+  feedbackBanner: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  feedbackBannerError: {
+    backgroundColor: theme.colors.support['red/10'],
+    borderColor: theme.colors.support.red,
+  },
+  feedbackBannerSuccess: {
+    backgroundColor: theme.colors.lime['700/10'],
+    borderColor: theme.colors.lime[700],
+  },
 });

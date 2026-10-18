@@ -27,4 +27,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  errorBanner: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.support['red/10'],
+    borderWidth: 1,
+    borderColor: theme.colors.support.red,
+  },
 });

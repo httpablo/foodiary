@@ -5,9 +5,11 @@ import { MealStatus } from '@app/types/Meal';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { theme } from '@ui/styles/theme';
 import { Skeleton } from 'moti/skeleton';
-import { Alert, FlatList, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from './components/Header';
 import { styles } from './styles';
@@ -18,23 +20,26 @@ export function MealDetails() {
   const { navigate, goBack } = useNavigation<AppStackNavigationProps>();
   const { bottom } = useSafeAreaInsets();
   const { deleteMeal, isLoading: isDeleting } = useDeleteMeal(params.mealId);
+  const { confirm } = useConfirmDialog();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function confirmDelete() {
-    Alert.alert('Excluir refeição?', 'Essa ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteMeal();
-            goBack();
-          } catch {
-            Alert.alert('Erro', 'Não foi possível excluir a refeição.');
-          }
-        },
+    setDeleteError(null);
+    void confirm({
+      title: 'Excluir refeição?',
+      message: 'Essa ação não pode ser desfeita.',
+      cancelLabel: 'Cancelar',
+      confirmLabel: 'Excluir',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteMeal();
+          goBack();
+        } catch {
+          setDeleteError('Não foi possível excluir a refeição. Tente novamente.');
+        }
       },
-    ]);
+    });
   }
 
   return (
@@ -65,6 +70,17 @@ export function MealDetails() {
       />
       {meal?.status === MealStatus.SUCCESS && (
         <View style={[styles.actions, { paddingBottom: Math.max(bottom, 16) }]}>
+          {deleteError && (
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <AppText size="sm" color={theme.colors.support.red}>
+                {deleteError}
+              </AppText>
+            </View>
+          )}
           <View style={styles.actionRow}>
             <View style={styles.action}>
               <Button onPress={() => navigate('EditMeal', { mealId: meal.id, mode: 'repeat' })} disabled={isDeleting}>

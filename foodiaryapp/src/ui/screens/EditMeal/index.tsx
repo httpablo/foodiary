@@ -15,7 +15,7 @@ import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SavedFoodsPicker } from './SavedFoodsPicker';
 import { styles } from './styles';
@@ -28,6 +28,11 @@ type FoodDraft = {
   carbohydrates: string;
   fats: string;
 };
+
+interface IFeedbackMessage {
+  type: 'error' | 'success';
+  message: string;
+}
 
 const emptyFood = (id: number): FoodDraft => ({
   id, name: '', quantity: '', proteins: '', carbohydrates: '', fats: '',
@@ -70,8 +75,10 @@ export function EditMeal() {
   const { saveFood, isSavingFood } = useSaveFood();
   const isSaving = isUpdating || isRepeatingMeal || isCreatingMeal;
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [foods, setFoods] = useState<FoodDraft[]>(isCreating ? [emptyFood(0)] : []);
   const [showSavedFoods, setShowSavedFoods] = useState(false);
+  const [feedback, setFeedback] = useState<IFeedbackMessage | null>(null);
   const initializedMealId = useRef<string | null>(null);
   const nextFoodId = useRef(isCreating ? 1 : 0);
 
@@ -90,7 +97,15 @@ export function EditMeal() {
     }
   }, [meal]);
 
+  function handleNameChange(value: string) {
+    setName(value);
+    if (nameError) {
+      setNameError(undefined);
+    }
+  }
+
   function updateFood(id: number, field: Exclude<keyof FoodDraft, 'id'>, value: string) {
+    setFeedback(null);
     setFoods(current => current.map(food => (
       food.id === id ? { ...food, [field]: value } : food
     )));
@@ -98,7 +113,10 @@ export function EditMeal() {
 
   function addSavedFood(food: SavedFood) {
     if (foods.length >= 50) {
-      Alert.alert('Limite de alimentos', 'Uma refeição pode ter até 50 alimentos.');
+      setFeedback({
+        type: 'error',
+        message: 'Uma refeição pode ter até 50 alimentos.',
+      });
       return;
     }
     const draft = {
@@ -115,37 +133,63 @@ export function EditMeal() {
         && !current[0].proteins.trim() && !current[0].carbohydrates.trim() && !current[0].fats.trim()
         ? [draft] : [...current, draft]
     ));
+    setFeedback(null);
     setShowSavedFoods(false);
   }
 
   async function saveDraftFood(food: FoodDraft) {
     const parsed = parseFood(food);
     if (!parsed) {
-      Alert.alert('Confira o alimento', 'Preencha nome, quantidade e nutrientes antes de salvar.');
+      setFeedback({
+        type: 'error',
+        message: 'Preencha nome, quantidade e nutrientes antes de salvar.',
+      });
       return;
     }
     try {
       await saveFood(parsed);
-      Alert.alert('Alimento salvo', 'Você pode reutilizá-lo em outras refeições.');
+      setFeedback({
+        type: 'success',
+        message: 'Alimento salvo! Você pode reutilizá-lo em outras refeições.',
+      });
     } catch {
-      Alert.alert('Erro', 'Não foi possível salvar o alimento.');
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar o alimento.',
+      });
     }
   }
 
   async function save() {
+    setFeedback(null);
     if (!name.trim() || name.trim().length > 120) {
-      Alert.alert('Confira a refeição', 'Informe um nome com até 120 caracteres.');
+      const message = 'Informe um nome com até 120 caracteres.';
+      setNameError(message);
+      setFeedback({
+        type: 'error',
+        message,
+      });
       return;
     }
+    setNameError(undefined);
+
     if (foods.length < 1 || foods.length > 50) {
-      Alert.alert('Confira a refeição', 'Inclua pelo menos um alimento.');
+      setFeedback({
+        type: 'error',
+        message: foods.length > 50
+          ? 'Uma refeição pode ter até 50 alimentos.'
+          : 'Inclua pelo menos um alimento.',
+      });
       return;
     }
     const parsedFoods: MealsService.UpdateMealPayload['foods'] = [];
     for (const food of foods) {
       const parsed = parseFood(food);
       if (!parsed) {
-        Alert.alert('Confira os alimentos', 'Preencha nome, quantidade e nutrientes de cada alimento. Use valores entre 0 e 10000, com até duas casas decimais.');
+        setFeedback({
+          type: 'error',
+          message: 'Preencha nome, quantidade e nutrientes de cada alimento. Use valores entre 0 e 10000, com até duas casas decimais.',
+        });
         return;
       }
       parsedFoods.push(parsed);
@@ -160,19 +204,24 @@ export function EditMeal() {
         await createManualMeal({ ...payload, date: params.date, timezoneOffsetMinutes: params.timezoneOffsetMinutes });
         goBack();
       } else if (isRepeating) {
-        const mealId = await repeatMeal(payload);
+        const createdId = await repeatMeal(payload);
         reset({
           index: 1,
-          routes: [{ name: 'Home' }, { name: 'MealDetails', params: { mealId } }],
+          routes: [{ name: 'Home' }, { name: 'MealDetails', params: { mealId: createdId } }],
         });
       } else {
         await updateMeal(payload);
         goBack();
       }
     } catch {
-      Alert.alert('Erro', isCreating
-        ? 'Não foi possível cadastrar a refeição.'
-        : isRepeating ? 'Não foi possível repetir a refeição.' : 'Não foi possível salvar a refeição.');
+      setFeedback({
+        type: 'error',
+        message: isCreating
+          ? 'Não foi possível cadastrar a refeição.'
+          : isRepeating
+          ? 'Não foi possível repetir a refeição.'
+          : 'Não foi possível salvar a refeição.',
+      });
     }
   }
 
@@ -199,8 +248,26 @@ export function EditMeal() {
       <AppHeader title={title} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <FormGroup label="Nome da refeição">
-            <Input value={name} onChangeText={setName} maxLength={120} placeholder="Ex.: Almoço" />
+          {feedback && (
+            <View
+              style={[
+                styles.feedbackBanner,
+                feedback.type === 'error' ? styles.feedbackBannerError : styles.feedbackBannerSuccess,
+              ]}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <AppText
+                size="sm"
+                color={feedback.type === 'error' ? theme.colors.support.red : theme.colors.lime[900]}
+              >
+                {feedback.message}
+              </AppText>
+            </View>
+          )}
+
+          <FormGroup label="Nome da refeição" error={nameError}>
+            <Input value={name} onChangeText={handleNameChange} maxLength={120} placeholder="Ex.: Almoço" />
           </FormGroup>
           <AppText color={theme.colors.gray[700]}>
             {isCreating

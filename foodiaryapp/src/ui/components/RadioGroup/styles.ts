@@ -2,11 +2,17 @@ import { theme } from '@ui/styles/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
+  wrapper: {
+    gap: 8,
+  },
   container: {
     gap: 16,
   },
   containerHorizontal: {
     flexDirection: 'row',
+  },
+  errorMessage: {
+    marginTop: 4,
   },
   item: {
     borderWidth: 1,

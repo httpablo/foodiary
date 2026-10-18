@@ -23,10 +23,18 @@ export const styles = StyleSheet.create({
   },
   permissionContainer: {
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    paddingHorizontal: 24,
   },
   permissionLabel: {
-    maxWidth: 270,
+    maxWidth: 320,
+    lineHeight: 22,
+  },
+  permissionActions: {
+    width: '100%',
+    maxWidth: 320,
+    gap: 12,
+    paddingHorizontal: 24,
   },
   camera: {
     flex: 1,

@@ -1,13 +1,16 @@
 import { useAuth } from '@app/contexts/AuthContext/useAuth';
 import { ErrorCode } from '@app/types/ErrorCode';
+import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
+import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { isAxiosError } from 'axios';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Alert, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import { Step, StepHeader, StepSubtitle, StepTitle } from '../components/Step';
 import { OnboardingSchema } from '../schema';
 import { styles } from './CreateAccountStep.styles';
@@ -16,11 +19,14 @@ export function CreateAccountStep() {
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const confirmPasswordInputRef = useRef<TextInput>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useFormContext<OnboardingSchema>();
   const { signUp } = useAuth();
+  const { alert } = useConfirmDialog();
 
   const handleSubmit = form.handleSubmit(async data => {
+    setSubmitError(null);
     try {
       const birthDate = formatDateToAPI(data.birthDate);
 
@@ -41,11 +47,21 @@ export function CreateAccountStep() {
       });
     } catch (error) {
       if (isAxiosError(error) && error.response?.data?.error?.code === ErrorCode.EMAIL_ALREADY_IN_USE) {
-        Alert.alert('Oops!', 'Este e-mail já está sendo usado por outro usuário.');
+        const message = 'Este e-mail já está sendo usado por outro usuário.';
+        setSubmitError(message);
+        void alert({
+          title: 'Oops!',
+          message,
+        });
         return;
       }
 
-      Alert.alert('Oops!', 'Ocorreu um erro ao criar a sua conta, tente novamente.');
+      const message = 'Ocorreu um erro ao criar a sua conta, tente novamente.';
+      setSubmitError(message);
+      void alert({
+        title: 'Oops!',
+        message,
+      });
     }
   });
 
@@ -62,6 +78,18 @@ export function CreateAccountStep() {
         </StepHeader>
 
         <View style={styles.spacer} />
+
+        {submitError && (
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            style={{ paddingHorizontal: 24, marginBottom: 12 }}
+          >
+            <AppText size="sm" color={theme.colors.support.red}>
+              {submitError}
+            </AppText>
+          </View>
+        )}
 
         <View style={styles.fields}>
           <Controller

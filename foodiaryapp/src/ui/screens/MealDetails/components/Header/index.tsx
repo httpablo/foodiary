@@ -59,7 +59,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
               end={{ y: 1, x: 0 }}
             >
               <BlurView style={styles.blurView}>
-                <Button onPress={goBack} size="icon" variant="ghost">
+                <Button onPress={goBack} size="icon" variant="ghost" accessibilityLabel="Voltar">
                   <ChevronLeftIcon size={20} color={theme.colors.white} />
                 </Button>
               </BlurView>
@@ -74,7 +74,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
           ]}
         >
           <View style={styles.pageTitleContainer}>
-            <Button onPress={goBack} size="icon" variant="ghost">
+            <Button onPress={goBack} size="icon" variant="ghost" accessibilityLabel="Voltar">
               <ChevronLeftIcon size={20} color={theme.colors.white} />
             </Button>
             <AppText weight="medium" color={theme.colors.gray[300]}>
