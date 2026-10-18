@@ -167,6 +167,14 @@ async function main() {
     });
     assert.equal(meals.status, 200);
     assert.deepEqual((await meals.json()).meals, []);
+    assert.equal((await request('/meals/history')).status, 401);
+    const historyHeaders = { Authorization: `Bearer ${signupTokens.accessToken}` };
+    const emptyHistory = await request('/meals/history', { headers: historyHeaders });
+    assert.equal(emptyHistory.status, 200);
+    assert.deepEqual(await emptyHistory.json(), { meals: [], nextCursor: null });
+    for (const query of ['limit=0', 'limit=51', 'limit=1.5', 'cursor=invalid']) {
+      assert.equal((await request(`/meals/history?${query}`, { headers: historyHeaders })).status, 400);
+    }
     const weekPath = '/meals/weekly-summary?startDate=2026-10-05&timezoneOffsetMinutes=180';
     assert.equal((await request(weekPath)).status, 401);
     assert.equal((await request('/meals/weekly-summary?startDate=2026-10-06', {
@@ -323,6 +331,38 @@ async function main() {
     });
     assert.equal((await otherManualDay.json()).meals.length, 0);
 
+    // Tied timestamps and sub-millisecond precision must survive pagination.
+    for (const suffix of ['A', 'B', 'C', 'Queued']) {
+      await pool.query(
+        `INSERT INTO meals (id, account_id, status, input_type, input_file_key, name, foods, created_at)
+         VALUES ($1, $2, $3, 'MANUAL', NULL, 'Histórico', '[]', '2024-01-01T12:00:00.123456Z')`,
+        [`${mealId}history${suffix}`, ownerId, suffix === 'Queued' ? 'QUEUED' : 'SUCCESS'],
+      );
+    }
+    const expectedHistory = await pool.query<{ id: string }>(
+      'SELECT id FROM meals WHERE account_id = $1 AND status = $2 ORDER BY created_at DESC, id DESC',
+      [ownerId, 'SUCCESS'],
+    );
+    const seenIds: string[] = [];
+    let historyCursor: string | null = null;
+    do {
+      const pageResponse = await request(`/meals/history?limit=1${historyCursor ? `&cursor=${encodeURIComponent(historyCursor)}` : ''}`, {
+        headers: historyHeaders,
+      });
+      assert.equal(pageResponse.status, 200, await pageResponse.clone().text());
+      const page = await pageResponse.json();
+      assert.equal(page.meals.length, 1);
+      assert.ok(Array.isArray(page.meals[0].foods));
+      seenIds.push(page.meals[0].id);
+      historyCursor = page.nextCursor;
+      assert.ok(seenIds.length <= expectedHistory.rowCount!);
+    } while (historyCursor);
+    assert.deepEqual(seenIds, expectedHistory.rows.map(row => row.id));
+    const otherHistory = await request('/meals/history', {
+      headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    });
+    assert.deepEqual(await otherHistory.json(), { meals: [], nextCursor: null });
+
     assert.equal((await request('/saved-foods')).status, 401);
     const savedFood = manualPayload.foods[0];
     const saveFood = await request('/saved-foods', json('PUT', savedFood, signupTokens.accessToken));
@@ -386,6 +426,8 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     assert.equal((await afterDelete.json()).meals.some((item: { id: string }) => item.id === mealId), false);
+    const historyAfterDelete = await request('/meals/history', { headers: historyHeaders });
+    assert.equal((await historyAfterDelete.json()).meals.some((item: { id: string }) => item.id === mealId), false);
     assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit, signupTokens.accessToken))).status, 404);
     const independentCopy = await request(`/meals/${repeatedId}`, {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },

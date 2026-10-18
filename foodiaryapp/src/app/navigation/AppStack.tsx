@@ -13,6 +13,7 @@ import { MealDetails } from '@ui/screens/MealDetails';
 import { EditMeal } from '@ui/screens/EditMeal';
 import { WeeklySummaryScreen } from '@ui/screens/WeeklySummary';
 import { MealPlanner } from '@ui/screens/MealPlanner';
+import { MealHistory } from '@ui/screens/MealHistory';
 
 type AppStackParamList = {
   Home: undefined;
@@ -32,6 +33,7 @@ type AppStackParamList = {
   EditProfile: undefined;
   WeeklySummary: undefined;
   MealPlanner: undefined;
+  MealHistory: undefined;
 };
 
 export type AppStackNavigationProps = NativeStackNavigationProp<AppStackParamList>;
@@ -59,6 +61,7 @@ export function AppStack() {
       <Stack.Screen name="EditProfile" component={EditProfile} />
       <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
       <Stack.Screen name="MealPlanner" component={MealPlanner} />
+      <Stack.Screen name="MealHistory" component={MealHistory} />
     </Stack.Navigator>
   );
 }

@@ -14,6 +14,7 @@ export function useRepeatMeal(sourceMealId?: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['meals'] }),
         queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
+        queryClient.invalidateQueries({ queryKey: ['mealHistory'] }),
       ]);
     },
   });

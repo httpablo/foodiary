@@ -15,6 +15,7 @@ export function useUpdateMeal(mealId?: string) {
         queryClient.invalidateQueries({ queryKey: ['meal', mealId] }),
         queryClient.invalidateQueries({ queryKey: ['meals'] }),
         queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
+        queryClient.invalidateQueries({ queryKey: ['mealHistory'] }),
       ]);
     },
   });

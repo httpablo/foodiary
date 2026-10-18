@@ -17,6 +17,7 @@ import { DeleteMealController } from '@application/controllers/meals/DeleteMealC
 import { GetMealByIdController } from '@application/controllers/meals/GetMealByIdController';
 import { GetWeeklySummaryController } from '@application/controllers/meals/GetWeeklySummaryController';
 import { ListMealsByDayController } from '@application/controllers/meals/ListMealsByDayController';
+import { ListMealHistoryController } from '@application/controllers/meals/ListMealHistoryController';
 import { RepeatMealController } from '@application/controllers/meals/RepeatMealController';
 import { UpdateMealController } from '@application/controllers/meals/UpdateMealController';
 import { UpdateProfileController } from '@application/controllers/profiles/UpdateProfileController';
@@ -57,6 +58,7 @@ const routes: Route[] = [
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
+  { method: 'GET', path: '/meals/history', private: true, controller: ListMealHistoryController },
   { method: 'GET', path: '/meals/weekly-summary', private: true, controller: GetWeeklySummaryController },
   { method: 'POST', path: '/meals/manual', private: true, controller: CreateManualMealController },
   { method: 'POST', path: '/meals', private: true, controller: CreateMealController },

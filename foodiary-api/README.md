@@ -31,6 +31,7 @@ Para acessar a API por um celular na mesma rede, use o IP local do computador em
 | GET | `/profile-photos/:accountId/:filename` | Assinatura temporária na URL |
 | PUT | `/goals` | Bearer token |
 | GET | `/meals?date=YYYY-MM-DD` | Bearer token |
+| GET | `/meals/history?limit=20&cursor=...` | Bearer token; histórico paginado de refeições concluídas da conta |
 | GET | `/meals/weekly-summary?startDate=YYYY-MM-DD&timezoneOffsetMinutes=180` | Bearer token; início da semana na segunda-feira |
 | POST | `/meals` | Bearer token |
 | POST | `/meals/manual` | Bearer token; nome, alimentos, data local e deslocamento de fuso |
@@ -47,6 +48,8 @@ Para acessar a API por um celular na mesma rede, use o IP local do computador em
 Após o upload, a refeição fica em `QUEUED`. Com `OPENAI_API_KEY` configurada, o servidor local inicia um worker que busca trabalhos no PostgreSQL, processa um por vez, tenta novamente após 30 segundos em caso de falha e marca `FAILED` após duas tentativas. Trabalhos interrompidos há mais de 15 minutos voltam à fila. Os códigos de recuperação de senha aparecem no terminal **apenas em desenvolvimento**. Não há entrega de e-mail configurada para produção. Os detalhes do banco e das migrações estão em [db/README.md](db/README.md).
 
 Na listagem de refeições, o app envia `timezoneOffsetMinutes` com a data para consultar o dia local do celular. Sem esse parâmetro, a API usa UTC.
+
+O histórico retorna `{ meals, nextCursor }`, ordenado por data decrescente e ID decrescente em caso de empate. `limit` aceita de 1 a 50 (padrão 20); envie o `nextCursor` recebido para buscar a próxima página. `nextCursor: null` indica o fim. O cursor preserva a precisão da data no banco. A consulta é restrita à conta autenticada e inclui apenas refeições concluídas.
 
 O resumo semanal usa o mesmo deslocamento de fuso. Dias sem refeições têm `totals: null`; dias com refeições de valor zero têm totais numéricos iguais a zero. As médias consideram apenas dias com registros e são comparadas no app com as metas atuais.
 

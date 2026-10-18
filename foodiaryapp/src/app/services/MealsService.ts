@@ -4,6 +4,13 @@ import { WeeklySummary } from '@app/types/WeeklySummary';
 import { Service } from './Service';
 
 export class MealsService extends Service {
+  static async getHistory(cursor?: string): Promise<MealsService.HistoryResponse> {
+    const { data } = await this.client.get<MealsService.HistoryResponse>('/meals/history', {
+      params: { cursor, limit: 20 },
+    });
+    return { ...data, meals: data.meals.map(meal => ({ ...meal, createdAt: new Date(meal.createdAt) })) };
+  }
+
   static async getWeeklySummary(startDate: string, timezoneOffsetMinutes: number): Promise<WeeklySummary> {
     const { data } = await this.client.get<WeeklySummary>('/meals/weekly-summary', {
       params: { startDate, timezoneOffsetMinutes },
@@ -85,6 +92,7 @@ export class MealsService extends Service {
 }
 
 export namespace MealsService {
+  export type HistoryResponse = { meals: SimplifiedMeal[]; nextCursor: string | null };
   export type UpdateMealPayload = {
     name: string;
     foods: Pick<Food, 'name' | 'quantity' | 'proteins' | 'carbohydrates' | 'fats'>[];

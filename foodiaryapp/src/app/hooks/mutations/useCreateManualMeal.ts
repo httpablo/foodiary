@@ -12,6 +12,7 @@ export function useCreateManualMeal() {
           refetchType: 'all',
         }),
         queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
+        queryClient.invalidateQueries({ queryKey: ['mealHistory'] }),
       ]);
     },
   });

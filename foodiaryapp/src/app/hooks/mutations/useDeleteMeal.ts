@@ -10,6 +10,7 @@ export function useDeleteMeal(mealId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['meals'] }),
         queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
+        queryClient.invalidateQueries({ queryKey: ['mealHistory'] }),
       ]);
     },
   });
