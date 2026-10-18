@@ -50,4 +50,30 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: {
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setImmediate: 'readonly',
+        URL: 'readonly',
+        Blob: 'readonly',
+        FormData: 'readonly',
+        fetch: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-console': 'off',
+    },
+  },
 ]);

@@ -56,7 +56,11 @@ export class MealsService extends Service {
   static async createMeal(
     payload: MealsService.CreateMealPayload,
   ): Promise<MealsService.CreateMealResponse> {
-    const { data } = await this.client.post('/meals', payload);
+    const { blob, ...filePayload } = payload.file;
+    const { data } = await this.client.post('/meals', {
+      ...payload,
+      file: filePayload,
+    });
 
     await this.uploadPresignedPOST({
       uploadSignature: data.uploadSignature,
@@ -64,6 +68,7 @@ export class MealsService extends Service {
         type: payload.file.type,
         uri: payload.file.uri,
         name: payload.file.name,
+        blob,
       },
     });
 
@@ -105,13 +110,26 @@ export namespace MealsService {
     meals: SimplifiedMeal[];
   };
 
+  export type MealFileType =
+    | 'image/jpeg'
+    | 'image/png'
+    | 'image/webp'
+    | 'audio/m4a'
+    | 'audio/mp4'
+    | 'audio/webm'
+    | 'audio/ogg'
+    | 'audio/wav';
+
   export type CreateMealPayload = {
     file: {
-      type: 'audio/m4a' | 'image/jpeg';
+      type: MealFileType;
       size: number;
       uri: string;
       name: string;
+      blob?: Blob;
     };
+    date?: string;
+    timezoneOffsetMinutes?: number;
   };
 
   export type CreateMealResponse = {
@@ -120,5 +138,5 @@ export namespace MealsService {
 
   export type GetMealByIdResponse = {
     meal: Meal;
-  }
+  };
 }
