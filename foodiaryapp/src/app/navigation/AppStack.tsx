@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { RouteProp } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -13,6 +14,7 @@ import { MealDetails } from '@ui/screens/MealDetails';
 import { EditMeal } from '@ui/screens/EditMeal';
 import { WeeklySummaryScreen } from '@ui/screens/WeeklySummary';
 import { MealPlanner } from '@ui/screens/MealPlanner';
+import { MealHistory } from '@ui/screens/MealHistory';
 import { NutritionLabelScanner } from '@ui/screens/NutritionLabelScanner';
 import type { SavedFood } from '@app/types/SavedFood';
 
@@ -35,6 +37,7 @@ type AppStackParamList = {
   EditProfile: undefined;
   WeeklySummary: undefined;
   MealPlanner: undefined;
+  MealHistory: undefined;
   NutritionLabelScanner: { mealDate: string; timezoneOffsetMinutes: number } | undefined;
 };
 
@@ -52,18 +55,21 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 
 export function AppStack() {
   return (
-    <Stack.Navigator
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Home" component={Home} />
-      <Stack.Screen name="MealDetails" component={MealDetails} />
-      <Stack.Screen name="EditMeal" component={EditMeal} />
-      <Stack.Screen name="EditGoals" component={EditGoals} />
-      <Stack.Screen name="Account" component={Account} />
-      <Stack.Screen name="EditProfile" component={EditProfile} />
-      <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
-      <Stack.Screen name="MealPlanner" component={MealPlanner} />
-      <Stack.Screen name="NutritionLabelScanner" component={NutritionLabelScanner} />
-    </Stack.Navigator>
+    <BottomSheetModalProvider>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="MealDetails" component={MealDetails} />
+        <Stack.Screen name="EditMeal" component={EditMeal} />
+        <Stack.Screen name="EditGoals" component={EditGoals} />
+        <Stack.Screen name="Account" component={Account} />
+        <Stack.Screen name="EditProfile" component={EditProfile} />
+        <Stack.Screen name="WeeklySummary" component={WeeklySummaryScreen} />
+        <Stack.Screen name="MealPlanner" component={MealPlanner} />
+        <Stack.Screen name="MealHistory" component={MealHistory} />
+        <Stack.Screen name="NutritionLabelScanner" component={NutritionLabelScanner} />
+      </Stack.Navigator>
+    </BottomSheetModalProvider>
   );
 }

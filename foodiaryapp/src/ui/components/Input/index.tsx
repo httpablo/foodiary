@@ -61,6 +61,7 @@ export function Input({
       onBlur={handleBlur}
       readOnly={disabled}
       onChangeText={handleChangeText}
+      accessibilityState={{ ...props.accessibilityState, disabled: !!disabled }}
       {...props}
     />
   );

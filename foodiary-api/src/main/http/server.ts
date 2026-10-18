@@ -17,6 +17,7 @@ import { DeleteMealController } from '@application/controllers/meals/DeleteMealC
 import { GetMealByIdController } from '@application/controllers/meals/GetMealByIdController';
 import { GetWeeklySummaryController } from '@application/controllers/meals/GetWeeklySummaryController';
 import { ListMealsByDayController } from '@application/controllers/meals/ListMealsByDayController';
+import { ListMealHistoryController } from '@application/controllers/meals/ListMealHistoryController';
 import { RepeatMealController } from '@application/controllers/meals/RepeatMealController';
 import { UpdateMealController } from '@application/controllers/meals/UpdateMealController';
 import { UpdateProfileController } from '@application/controllers/profiles/UpdateProfileController';
@@ -28,6 +29,7 @@ import { ErrorCode } from '@application/errors/ErrorCode';
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { HttpError } from '@application/errors/http/HttpError';
+import { TooManyRequests } from '@application/errors/http/TooManyRequests';
 import { Unauthorized } from '@application/errors/http/Unauthorized';
 import { Meal } from '@application/entities/Meal';
 import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
@@ -58,6 +60,7 @@ const routes: Route[] = [
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
+  { method: 'GET', path: '/meals/history', private: true, controller: ListMealHistoryController },
   { method: 'GET', path: '/meals/weekly-summary', private: true, controller: GetWeeklySummaryController },
   { method: 'POST', path: '/meals/manual', private: true, controller: CreateManualMealController },
   { method: 'POST', path: '/meals', private: true, controller: CreateMealController },
@@ -158,13 +161,51 @@ async function accountIdFromRequest(request: IncomingMessage): Promise<string> {
   }
 }
 
+const publicAuthPaths = new Set([
+  '/auth/sign-up',
+  '/auth/sign-in',
+  '/auth/refresh-token',
+  '/auth/forgot-password',
+  '/auth/forgot-password/confirm',
+  '/auth/sign-out',
+]);
+
 export function createHttpServer(options: {
   scanNutritionLabel?: (image: Buffer) => Promise<NutritionLabelResult>;
 } = {}): Server {
+  new LocalAuthGateway().assertConfigured();
+
   const scanNutritionLabel = options.scanNutritionLabel
     ?? ((image: Buffer) => new NutritionLabelAIGateway().scan(image));
   const allowedWebOrigins = new Set((process.env.ALLOWED_WEB_ORIGINS ?? '')
     .split(',').map(value => value.trim()).filter(Boolean));
+  const authRateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+  const checkAuthRateLimit = (request: IncomingMessage, pathname: string) => {
+    const windowMs = 60_000;
+    const maxRequests = Number(process.env.AUTH_RATE_LIMIT_MAX ?? 120);
+    const now = Date.now();
+    const clientIp = request.socket.remoteAddress ?? 'unknown';
+    const key = `${clientIp}:${pathname}`;
+    const current = authRateLimitBuckets.get(key);
+
+    if (!current || current.resetAt <= now) {
+      if (authRateLimitBuckets.size > 5000) {
+        for (const [k, v] of authRateLimitBuckets.entries()) {
+          if (v.resetAt <= now) {
+            authRateLimitBuckets.delete(k);
+          }
+        }
+      }
+      authRateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+      return;
+    }
+
+    current.count += 1;
+    if (current.count > maxRequests) {
+      throw new TooManyRequests('Too many authentication attempts. Please try again later.');
+    }
+  };
 
   return createServer(async (request, response) => {
     try {
@@ -183,6 +224,10 @@ export function createHttpServer(options: {
 
       const url = new URL(request.url ?? '/', 'http://localhost');
 
+      if (request.method === 'POST' && publicAuthPaths.has(url.pathname)) {
+        checkAuthRateLimit(request, url.pathname);
+      }
+
       if (request.method === 'GET' && url.pathname === '/health') {
         await getPostgresPool().query('SELECT 1');
         sendJson(response, 200, { status: 'ok' });
@@ -197,7 +242,7 @@ export function createHttpServer(options: {
       }
 
       const storage = new LocalMealsFileStorageGateway();
-      const fileMatch = /^\/meal-files\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|m4a))$/.exec(url.pathname);
+      const fileMatch = /^\/meal-files\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|png|webp|m4a|mp4|webm|ogg|wav))$/.exec(url.pathname);
       if (request.method === 'GET' && fileMatch) {
         if (!await new MealRepository().hasInputFile(fileMatch[1])) {
           sendJson(response, 404, { error: { code: 'NOT_FOUND', message: 'File not found.' } });
@@ -302,11 +347,34 @@ export function createHttpServer(options: {
           return;
         }
         const { bytes, contentType } = await readFileUpload(request);
-        const expectedType = meal.inputType === Meal.InputType.AUDIO ? 'audio/m4a' : 'image/jpeg';
-        const validContent = meal.inputType === Meal.InputType.AUDIO
-          ? bytes.toString('ascii', 4, 8) === 'ftyp'
-          : bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-        if (contentType !== expectedType || !validContent) {
+        const normalizedType = contentType.split(';')[0].trim().toLowerCase();
+        const ext = LocalMealsFileStorageGateway.getFileExtension(meal.inputFileKey);
+        const expectedType = LocalMealsFileStorageGateway.getMimeTypeFromFileKey(meal.inputFileKey, meal.inputType);
+        const matchesInputType = meal.inputType === Meal.InputType.AUDIO
+          ? expectedType.startsWith('audio/')
+          : expectedType.startsWith('image/');
+        const validContent = (() => {
+          switch (ext) {
+            case 'jpeg':
+              return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+            case 'png':
+              return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+            case 'webp':
+              return bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+            case 'm4a':
+            case 'mp4':
+              return bytes.toString('ascii', 4, 8) === 'ftyp';
+            case 'webm':
+              return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+            case 'ogg':
+              return bytes.toString('ascii', 0, 4) === 'OggS';
+            case 'wav':
+              return bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WAVE';
+            default:
+              return false;
+          }
+        })();
+        if (!matchesInputType || normalizedType !== expectedType || !validContent) {
           throw new BadRequest('File content does not match the meal type.');
         }
         try {

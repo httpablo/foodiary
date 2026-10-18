@@ -44,23 +44,6 @@ export class MealRepository {
     });
   }
 
-  async save(meal: Meal): Promise<void> {
-    await getPostgresPool().query(
-      `UPDATE meals
-       SET status = $3, attempts = $4, name = $5, icon = $6, foods = $7::jsonb
-       WHERE id = $1 AND account_id = $2`,
-      [
-        meal.id,
-        meal.accountId,
-        meal.status,
-        meal.attempts,
-        meal.name,
-        meal.icon,
-        JSON.stringify(meal.foods),
-      ],
-    );
-  }
-
   async updateContents({ mealId, accountId, name, foods }: {
     mealId: string;
     accountId: string;
@@ -75,13 +58,19 @@ export class MealRepository {
     return result.rowCount === 1;
   }
 
-  async deleteCompleted({ mealId, accountId }: MealRepository.FindByIdParams): Promise<{ inputFileKey: string | null } | null> {
+  async deleteDeletable({ mealId, accountId }: MealRepository.FindByIdParams): Promise<{ inputFileKey: string | null } | null> {
     const { rows } = await getPostgresPool().query<{ input_file_key: string | null }>(
-      `DELETE FROM meals WHERE id = $1 AND account_id = $2 AND status = $3
+      `DELETE FROM meals
+       WHERE id = $1 AND account_id = $2
+         AND status IN ($3, $4, $5)
        RETURNING input_file_key`,
-      [mealId, accountId, Meal.Status.SUCCESS],
+      [mealId, accountId, Meal.Status.UPLOADING, Meal.Status.SUCCESS, Meal.Status.FAILED],
     );
     return rows[0] ? { inputFileKey: rows[0].input_file_key } : null;
+  }
+
+  async deleteCompleted(params: MealRepository.FindByIdParams): Promise<{ inputFileKey: string | null } | null> {
+    return this.deleteDeletable(params);
   }
 
   async hasInputFile(fileKey: string): Promise<boolean> {

@@ -21,4 +21,7 @@ export const styles = StyleSheet.create({
   submit: {
     marginTop: 12,
   },
+  error: {
+    color: theme.colors.support.red,
+  },
 });

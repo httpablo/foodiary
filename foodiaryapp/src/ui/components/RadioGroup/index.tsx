@@ -21,6 +21,10 @@ interface IRadioGroupProps {
   onChangeValue: (value: string) => void;
   orientation?: 'vertical' | 'horizontal';
   error?: boolean;
+  errorMessage?: string;
+  accessibilityLabel?: string;
+  nativeID?: string;
+  accessibilityLabelledBy?: string | string[];
 }
 
 export function RadioGroup({
@@ -29,6 +33,10 @@ export function RadioGroup({
   onChangeValue,
   orientation = 'vertical',
   error = false,
+  errorMessage,
+  accessibilityLabel,
+  nativeID,
+  accessibilityLabelledBy,
 }: IRadioGroupProps) {
   const isHorizontal = orientation === 'horizontal';
 
@@ -41,8 +49,28 @@ export function RadioGroup({
         error,
       }}
     >
-      <View style={[styles.container, isHorizontal && styles.containerHorizontal]}>
-        {children}
+      <View style={styles.wrapper}>
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityLabelledBy={accessibilityLabelledBy}
+          nativeID={nativeID}
+          style={[styles.container, isHorizontal && styles.containerHorizontal]}
+        >
+          {children}
+        </View>
+
+        {error && (
+          <AppText
+            size="sm"
+            color={theme.colors.support.red}
+            style={styles.errorMessage}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            {errorMessage || 'Selecione uma opção para continuar.'}
+          </AppText>
+        )}
       </View>
     </RadioGroupContext.Provider>
   );
@@ -51,17 +79,21 @@ export function RadioGroup({
 interface IRadioGroupItemProps {
   children: React.ReactNode;
   value: string;
+  accessibilityLabel?: string;
 }
 
 const RadioGroupItemContext = createContext({ isSelected: false });
 
-export function RadioGroupItem({ children, value }: IRadioGroupItemProps) {
+export function RadioGroupItem({ children, value, accessibilityLabel }: IRadioGroupItemProps) {
   const { value: selectedValue, setValue, isHorizontal, error } = use(RadioGroupContext);
   const isSelected = value === selectedValue;
 
   return (
     <RadioGroupItemContext.Provider value={{ isSelected }}>
       <TouchableOpacity
+        accessibilityRole="radio"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ checked: isSelected, selected: isSelected }}
         style={[
           styles.item,
           isHorizontal && styles.horizontalItem,

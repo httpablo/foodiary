@@ -21,6 +21,7 @@ export function Button({
   style,
   isLoading,
   leftIcon: LeftIcon,
+  accessibilityState,
   rippleStyle = 'dark',
   ...props
 }: IButtonProps) {
@@ -36,6 +37,7 @@ export function Button({
     <View style={styles.wrapper}>
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ ...accessibilityState, disabled: !!disabled, busy: !!isLoading }}
         android_ripple={{
           foreground: true,
           color: rippleStyle === 'dark'

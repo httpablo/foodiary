@@ -2,11 +2,18 @@ import { theme } from '@ui/styles/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
+  wrapper: {
+    gap: 8,
+  },
   container: {
     gap: 16,
   },
   containerHorizontal: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  errorMessage: {
+    marginTop: 4,
   },
   item: {
     borderWidth: 1,
@@ -29,8 +36,9 @@ export const styles = StyleSheet.create({
   },
   horizontalItem: {
     flexDirection: 'column',
-    paddingVertical: 32,
+    paddingVertical: 24,
     flex: 1,
+    minWidth: 120,
   },
   icon: {
     backgroundColor: theme.colors.gray[200],
@@ -45,6 +53,7 @@ export const styles = StyleSheet.create({
   },
   label: {
     letterSpacing: -0.32,
+    flexShrink: 1,
   },
   textCenter: {
     textAlign: 'center',

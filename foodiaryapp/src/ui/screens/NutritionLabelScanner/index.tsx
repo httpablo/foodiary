@@ -112,16 +112,11 @@ export function NutritionLabelScanner() {
       if (!asset || asset.width < 1 || asset.height < 1) {
         throw new Error('Invalid image dimensions.');
       }
-      setLabel(null);
-      setDraft(null);
-      setPhotoUri(null);
       setErrorMessage(null);
-      setAttemptedSave(false);
       setIsScanning(true);
       const normalizedUri = await prepareJpeg(asset);
-      setPhotoUri(normalizedUri);
-
       const scanned = await NutritionLabelService.scan(normalizedUri);
+      setPhotoUri(normalizedUri);
       setLabel(scanned);
       setDraft({
         name: scanned.name ?? '',
@@ -130,6 +125,7 @@ export function NutritionLabelScanner() {
         carbohydrates: formatValue(scanned.carbohydrates),
         fats: formatValue(scanned.fats),
       });
+      setAttemptedSave(false);
     } catch (error) {
       setErrorMessage(scanErrorMessage(error));
     } finally {
@@ -248,12 +244,12 @@ export function NutritionLabelScanner() {
 
           <View style={draft ? styles.compactActions : styles.actions}>
             <View style={draft ? styles.compactAction : undefined}>
-              <Button variant={draft ? 'ghost' : 'primary'} leftIcon={CameraIcon} disabled={isPicking || isScanning || isSavingFood} onPress={() => choosePhoto('camera')}>
+              <Button variant={draft ? 'ghost' : 'primary'} style={draft ? styles.compactButton : undefined} leftIcon={CameraIcon} disabled={isPicking || isScanning || isSavingFood} onPress={() => choosePhoto('camera')}>
                 {draft ? 'Câmera' : 'Fotografar rótulo'}
               </Button>
             </View>
             <View style={draft ? styles.compactAction : undefined}>
-              <Button variant={draft ? 'ghost' : 'secondary'} leftIcon={ImagesIcon} disabled={isPicking || isScanning || isSavingFood} onPress={() => choosePhoto('library')}>
+              <Button variant={draft ? 'ghost' : 'secondary'} style={draft ? styles.compactButton : undefined} leftIcon={ImagesIcon} disabled={isPicking || isScanning || isSavingFood} onPress={() => choosePhoto('library')}>
                 {draft ? 'Galeria' : 'Escolher da galeria'}
               </Button>
             </View>

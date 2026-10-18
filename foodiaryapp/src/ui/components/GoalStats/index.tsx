@@ -11,6 +11,7 @@ export interface IGoalArcsProps {
   proteins: MacroProgress;
   carbohydrates: MacroProgress;
   fats: MacroProgress;
+  variant?: 'light' | 'dark';
 }
 
 export function GoalStats({
@@ -18,10 +19,12 @@ export function GoalStats({
   carbohydrates,
   fats,
   proteins,
+  variant = 'light',
 }: IGoalArcsProps) {
   const { width } = useWindowDimensions();
   const strokeWidth = 12;
-  const outerRadius = Math.min(160, (width - 32 - strokeWidth) / 2);
+  const outerRadius = Math.max(96, Math.min(160, (width - 32 - strokeWidth) / 2));
+  const isDark = variant === 'dark';
   const percentages = useMemo(() => ({
     calories: calcMacroPercentage(calories),
     carbohydrates: calcMacroPercentage(carbohydrates),
@@ -59,52 +62,60 @@ export function GoalStats({
           strokeWidth={strokeWidth}
           style={styles.fatArc}
         />
+      </View>
 
-        <View style={styles.caloriesTextContainer}>
-          <Text>
-            <Text style={styles.caloriesValue}>
-              {formatMacro(calories)}
+      <View style={styles.caloriesTextContainer}>
+        <Text style={styles.caloriesLine}>
+          <Text style={[styles.caloriesValue, isDark && styles.caloriesValueDark]}>
+            {formatMacro(calories)}
+          </Text>
+          {calories.current !== undefined && (
+            <Text style={[styles.caloriesGoal, isDark && styles.secondaryTextDark]}>
+              {' '}/ {calories.goal}
             </Text>
-            {calories.current !== undefined && (
-              <Text style={styles.caloriesGoal}> / {calories.goal}</Text>
-            )}
-          </Text>
+          )}
+        </Text>
 
-          <Text style={styles.caloriesLabel}>
-            Calorias
-          </Text>
-        </View>
+        <Text style={[styles.caloriesLabel, isDark && styles.secondaryTextDark]}>
+          Calorias
+        </Text>
       </View>
 
       <View style={styles.macrosContainer}>
         <View style={styles.macroItem}>
-          <Text style={styles.proteinValue}>
+          <Text style={[styles.proteinValue, isDark && styles.proteinValueDark]}>
             {formatMacro(proteins)}g
             {proteins.current !== undefined && (
-              <Text style={styles.macroGoal}> / {proteins.goal}g</Text>
+              <Text style={[styles.macroGoal, isDark && styles.secondaryTextDark]}>
+                {' '}/ {proteins.goal}g
+              </Text>
             )}
           </Text>
-          <Text style={styles.macroLabel}>Proteínas</Text>
+          <Text style={[styles.macroLabel, isDark && styles.secondaryTextDark]}>Proteínas</Text>
         </View>
 
         <View style={styles.macroItem}>
-          <Text style={styles.carbohydrateValue}>
+          <Text style={[styles.carbohydrateValue, isDark && styles.carbohydrateValueDark]}>
             {formatMacro(carbohydrates)}g
             {carbohydrates.current !== undefined && (
-              <Text style={styles.macroGoal}> / {carbohydrates.goal}g</Text>
+              <Text style={[styles.macroGoal, isDark && styles.secondaryTextDark]}>
+                {' '}/ {carbohydrates.goal}g
+              </Text>
             )}
           </Text>
-          <Text style={styles.macroLabel}>Carboidratos</Text>
+          <Text style={[styles.macroLabel, isDark && styles.secondaryTextDark]}>Carboidratos</Text>
         </View>
 
         <View style={styles.macroItem}>
-          <Text style={styles.fatValue}>
+          <Text style={[styles.fatValue, isDark && styles.fatValueDark]}>
             {formatMacro(fats)}g
             {fats.current !== undefined && (
-              <Text style={styles.macroGoal}> / {fats.goal}g</Text>
+              <Text style={[styles.macroGoal, isDark && styles.secondaryTextDark]}>
+                {' '}/ {fats.goal}g
+              </Text>
             )}
           </Text>
-          <Text style={styles.macroLabel}>Gorduras</Text>
+          <Text style={[styles.macroLabel, isDark && styles.secondaryTextDark]}>Gorduras</Text>
         </View>
       </View>
     </View>

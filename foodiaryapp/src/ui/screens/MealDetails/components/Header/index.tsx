@@ -59,7 +59,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
               end={{ y: 1, x: 0 }}
             >
               <BlurView style={styles.blurView}>
-                <Button onPress={goBack} size="icon" variant="ghost">
+                <Button onPress={goBack} size="icon" variant="ghost" accessibilityLabel="Voltar">
                   <ChevronLeftIcon size={20} color={theme.colors.white} />
                 </Button>
               </BlurView>
@@ -74,7 +74,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
           ]}
         >
           <View style={styles.pageTitleContainer}>
-            <Button onPress={goBack} size="icon" variant="ghost">
+            <Button onPress={goBack} size="icon" variant="ghost" accessibilityLabel="Voltar">
               <ChevronLeftIcon size={20} color={theme.colors.white} />
             </Button>
             <AppText weight="medium" color={theme.colors.gray[300]}>
@@ -102,7 +102,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
           <AppText color={theme.colors.gray[700]}>Proteínas</AppText>
           <Skeleton width={96} height={24} colorMode="light">
             {isLoading ? null : (
-              <AppText weight="medium" color={theme.colors.support.teal}>
+              <AppText weight="medium" color={theme.colors.supportText.teal}>
                 {summary.proteins}g ({percentages.proteins}%)
               </AppText>
             )}
@@ -113,7 +113,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
           <AppText color={theme.colors.gray[700]}>Carboidratos</AppText>
           <Skeleton width={96} height={24} colorMode="light">
             {isLoading ? null : (
-              <AppText weight="medium" color={theme.colors.support.yellow}>
+              <AppText weight="medium" color={theme.colors.supportText.yellow}>
                 {summary.carbohydrates}g ({percentages.carbohydrates}%)
               </AppText>
             )}
@@ -124,7 +124,7 @@ export function Header({ meal, isLoading }: IHeaderProps) {
           <AppText color={theme.colors.gray[700]}>Gorduras</AppText>
           <Skeleton width={96} height={24} colorMode="light">
             {isLoading ? null : (
-              <AppText weight="medium" color={theme.colors.support.orange}>
+              <AppText weight="medium" color={theme.colors.supportText.orange}>
                 {summary.fats}g ({percentages.fats}%)
               </AppText>
             )}

@@ -35,6 +35,7 @@ export function AudioPlayer({ audioUri, onTryAgain, onConfirm }: IAudioPlayerPro
           size="icon"
           variant="neutral"
           rippleStyle="light"
+          accessibilityLabel="Gravar novamente"
           onPress={onTryAgain}
         >
           <Trash2Icon
@@ -47,6 +48,7 @@ export function AudioPlayer({ audioUri, onTryAgain, onConfirm }: IAudioPlayerPro
           size="icon"
           variant="neutral"
           rippleStyle="light"
+          accessibilityLabel={playing ? 'Pausar áudio' : 'Reproduzir áudio gravado'}
           onPress={handlePlayPause}
         >
           {playing && (
@@ -68,6 +70,7 @@ export function AudioPlayer({ audioUri, onTryAgain, onConfirm }: IAudioPlayerPro
 
         <Button
           size="icon"
+          accessibilityLabel="Confirmar áudio"
           onPress={onConfirm}
         >
           <CheckIcon

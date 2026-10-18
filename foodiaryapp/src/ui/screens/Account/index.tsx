@@ -5,11 +5,12 @@ import { useNavigation } from '@react-navigation/native';
 import { AppHeader } from '@ui/components/AppHeader';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { ProfileAvatar } from '@ui/components/ProfileAvatar';
 import { theme } from '@ui/styles/theme';
 import { LogOutIcon, UserRoundIcon } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './styles';
 
@@ -18,27 +19,40 @@ export function Account() {
   const { signOut } = useAuth();
   const { navigate } = useNavigation<AppStackNavigationProps>();
   const { top, bottom } = useSafeAreaInsets();
+  const { confirm, alert } = useConfirmDialog();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   function handleSignOut() {
-    Alert.alert('Sair da conta?', 'Você precisará entrar novamente para acessar seus dados.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: () => {
-          setIsSigningOut(true);
-          void signOut()
-            .then((revoked) => {
-              if (!revoked) {
-                Alert.alert('Sessão local encerrada', 'Não foi possível encerrar a sessão no servidor.');
-              }
-            })
-            .catch(() => Alert.alert('Erro', 'Não foi possível sair da conta. Tente novamente.'))
-            .finally(() => setIsSigningOut(false));
-        },
+    setErrorMessage(null);
+    void confirm({
+      title: 'Sair da conta?',
+      message: 'Você precisará entrar novamente para acessar seus dados.',
+      cancelLabel: 'Cancelar',
+      confirmLabel: 'Sair',
+      destructive: true,
+      onConfirm: async () => {
+        setIsSigningOut(true);
+        try {
+          const revoked = await signOut();
+          if (!revoked) {
+            void alert({
+              title: 'Sessão local encerrada',
+              message: 'Não foi possível encerrar a sessão no servidor.',
+            });
+          }
+        } catch {
+          const message = 'Não foi possível sair da conta. Tente novamente.';
+          setErrorMessage(message);
+          void alert({
+            title: 'Erro',
+            message,
+          });
+        } finally {
+          setIsSigningOut(false);
+        }
       },
-    ]);
+    });
   }
 
   if (!account) {
@@ -64,6 +78,18 @@ export function Account() {
       </View>
 
       <View style={styles.footer}>
+        {errorMessage && (
+          <View
+            style={styles.feedbackBanner}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            <AppText size="sm" color={theme.colors.support.red}>
+              {errorMessage}
+            </AppText>
+          </View>
+        )}
+
         <Button variant="secondary" onPress={handleSignOut} isLoading={isSigningOut}>
           <View style={styles.actionLabel}>
             <LogOutIcon size={20} color={theme.colors.support.red} />

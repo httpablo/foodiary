@@ -1,6 +1,7 @@
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { theme } from '@ui/styles/theme';
+import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react-native';
 import { View } from 'react-native';
 import { useHomeContext } from '../../context/useHomeContext';
@@ -8,12 +9,14 @@ import { styles } from './styles';
 
 export function DateSwitcher() {
   const { isLoading, date, nextDay, previousDay } = useHomeContext();
+  const canGoForward = formatDateToAPI(date) < formatDateToAPI(new Date());
 
   return (
     <View style={[styles.container, { opacity: isLoading ? 0.5 : 1 }]}>
       <Button
         size="icon"
         variant="ghost"
+        accessibilityLabel="Dia anterior"
         onPress={previousDay}
         disabled={isLoading}
       >
@@ -31,8 +34,9 @@ export function DateSwitcher() {
       <Button
         size="icon"
         variant="ghost"
+        accessibilityLabel="Próximo dia"
         onPress={nextDay}
-        disabled={isLoading}
+        disabled={isLoading || !canGoForward}
       >
         <ChevronRightIcon />
       </Button>

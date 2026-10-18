@@ -12,21 +12,37 @@ import { usePictureModalController } from './usePictureModalController';
 
 interface IPictureModalProps {
   visible: boolean;
+  date?: Date;
   onClose: () => void;
   onCreate?: () => void;
+  onManualCreate?: () => void;
 }
 
-export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps) {
+export function PictureModal({ visible, date, onClose, onCreate, onManualCreate }: IPictureModalProps) {
   const {
     isLoading,
     permission,
     cameraRef,
     photoUri,
-    requestPermission,
+    cameraError,
+    handleRequestPermission,
+    handleCameraMountError,
     handleTakePicture,
     handleTryAgain,
+    handleManualEntry,
     handleConfirm,
-  } = usePictureModalController({ onClose, onCreate });
+  } = usePictureModalController({ visible, date, onClose, onCreate, onManualCreate });
+
+  const isPermissionBlocked = permission?.granted === false && permission.canAskAgain === false;
+  const isPermissionDenied = permission?.granted === false && permission.status === 'denied';
+  const showFallback = !permission || !permission.granted || !!cameraError;
+
+  const fallbackMessage = cameraError
+    ?? (isPermissionBlocked
+      ? 'O acesso à câmera está bloqueado. Habilite a permissão da câmera nas configurações do navegador ou do sistema, ou cadastre sua refeição manualmente.'
+      : isPermissionDenied
+      ? 'Permissão de acesso à câmera negada. Conceda acesso à câmera para tirar uma foto ou cadastre sua refeição manualmente.'
+      : 'Para registrar sua refeição com uma foto, precisamos de acesso à câmera do seu dispositivo.');
 
   return (
     <Modal
@@ -39,7 +55,7 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
       <StatusBar animated translucent barStyle="light-content" />
       {isLoading && <CreateMealLoader type="picture" />}
 
-      {(!isLoading && permission) && (
+      {!isLoading && (
         <View style={styles.container}>
           <SafeAreaProvider>
             <SafeAreaView style={styles.content}>
@@ -48,15 +64,20 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                   size="icon"
                   variant="neutral"
                   rippleStyle="light"
+                  accessibilityLabel="Fechar câmera"
                   onPress={onClose}
                 >
                   <XIcon size={20} color={theme.colors.gray[500]} />
                 </Button>
               </View>
 
-              {!permission.granted && (
+              {showFallback && (
                 <View style={styles.body}>
-                  <View style={styles.permissionContainer}>
+                  <View
+                    style={styles.permissionContainer}
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite"
+                  >
                     <CameraIcon
                       size={32}
                       color={theme.colors.gray[500]}
@@ -67,20 +88,34 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                       align="center"
                       style={styles.permissionLabel}
                     >
-                      Para registrar sua refeição com uma foto, precisamos de acesso à câmera do seu dispositivo.
+                      {fallbackMessage}
                     </AppText>
                   </View>
 
-                  <Button
-                    onPress={requestPermission}
-                    leftIcon={UnlockIcon}
-                  >
-                    Conceder acesso
-                  </Button>
+                  <View style={styles.permissionActions}>
+                    <Button
+                      onPress={handleRequestPermission}
+                      leftIcon={!isPermissionBlocked && !isPermissionDenied && !cameraError ? UnlockIcon : undefined}
+                    >
+                      {isPermissionBlocked || isPermissionDenied || cameraError
+                        ? 'Tentar novamente'
+                        : 'Conceder acesso'}
+                    </Button>
+
+                    <Button
+                      variant="neutral"
+                      rippleStyle="light"
+                      onPress={handleManualEntry}
+                    >
+                      <AppText color={theme.colors.white} weight="medium">
+                        Cadastrar manualmente
+                      </AppText>
+                    </Button>
+                  </View>
                 </View>
               )}
 
-              {permission.granted && (
+              {!showFallback && (
                 <>
                   <View style={styles.body}>
                     {!photoUri && (
@@ -88,6 +123,7 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                         ref={cameraRef}
                         style={styles.camera}
                         facing="back"
+                        onMountError={handleCameraMountError}
                       />
                     )}
 
@@ -107,6 +143,7 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                             size="icon"
                             variant="neutral"
                             rippleStyle="light"
+                            accessibilityLabel="Tirar foto"
                             onPress={handleTakePicture}
                           >
                             <CameraIcon size={20} color={theme.colors.lime[600]} />
@@ -128,6 +165,7 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                             size="icon"
                             variant="neutral"
                             rippleStyle="light"
+                            accessibilityLabel="Descartar foto"
                             onPress={handleTryAgain}
                           >
                             <Trash2Icon
@@ -137,6 +175,7 @@ export function PictureModal({ visible, onClose, onCreate }: IPictureModalProps)
                           </Button>
                           <Button
                             size="icon"
+                            accessibilityLabel="Confirmar foto"
                             onPress={handleConfirm}
                           >
                             <CheckIcon

@@ -1,7 +1,9 @@
+import { AppStackNavigationProps } from '@app/navigation/AppStack';
 import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
+import { NavigationContext, useNavigation } from '@react-navigation/native';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { CreateMealOptions } from '@ui/components/CreateMealOptions';
@@ -10,11 +12,12 @@ import { PlusIcon } from 'lucide-react-native';
 import { useRef } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { styles } from './styles';
+import { FAB_BOTTOM_SPACING, styles } from './styles';
 
 export function Fab({ date }: { date: Date }) {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const { bottom } = useSafeAreaInsets();
+  const navigation = useNavigation<AppStackNavigationProps>();
 
   function handleOpenBottomSheet() {
     bottomSheetModalRef.current?.present();
@@ -22,8 +25,13 @@ export function Fab({ date }: { date: Date }) {
 
   return (
     <>
-      <View style={[styles.container, { bottom: bottom }]}>
-        <Button size="icon" onPress={handleOpenBottomSheet}>
+      <View style={[styles.container, { bottom: bottom + FAB_BOTTOM_SPACING }]}>
+        <Button
+          size="icon"
+          style={styles.button}
+          accessibilityLabel="Cadastrar refeição"
+          onPress={handleOpenBottomSheet}
+        >
           <PlusIcon size={20} color={theme.colors.black[700]} />
         </Button>
       </View>
@@ -32,21 +40,23 @@ export function Fab({ date }: { date: Date }) {
         ref={bottomSheetModalRef}
         style={styles.bottomSheet}
       >
-        <BottomSheetView
-          style={[
-            styles.content,
-            { paddingBottom: bottom },
-          ]}
-        >
-          <AppText style={styles.title} size="lg" weight="semiBold">
-            Cadastre sua refeição
-          </AppText>
+        <NavigationContext.Provider value={navigation}>
+          <BottomSheetView
+            style={[
+              styles.content,
+              { paddingBottom: bottom },
+            ]}
+          >
+            <AppText style={styles.title} size="lg" weight="semiBold">
+              Cadastre sua refeição
+            </AppText>
 
-          <CreateMealOptions
-            date={date}
-            onCreate={() => bottomSheetModalRef.current?.dismiss()}
-          />
-        </BottomSheetView>
+            <CreateMealOptions
+              date={date}
+              onCreate={() => bottomSheetModalRef.current?.dismiss()}
+            />
+          </BottomSheetView>
+        </NavigationContext.Provider>
       </BottomSheetModal>
     </>
   );

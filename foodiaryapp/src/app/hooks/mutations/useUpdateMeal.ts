@@ -1,4 +1,5 @@
 import { queryClient } from '@app/lib/queryClient';
+import { invalidateMealQueries } from '@app/lib/queryKeys';
 import { MealsService } from '@app/services/MealsService';
 import { useMutation } from '@tanstack/react-query';
 
@@ -11,11 +12,7 @@ export function useUpdateMeal(mealId?: string) {
       return MealsService.updateMeal(mealId, payload);
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['meal', mealId] }),
-        queryClient.invalidateQueries({ queryKey: ['meals'] }),
-        queryClient.invalidateQueries({ queryKey: ['weeklySummary'] }),
-      ]);
+      await invalidateMealQueries(queryClient, mealId);
     },
   });
   return { updateMeal: mutateAsync, isLoading: isPending };

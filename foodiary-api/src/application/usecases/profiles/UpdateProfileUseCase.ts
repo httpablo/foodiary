@@ -1,5 +1,6 @@
 import { Profile } from '@application/entities/Profile';
-import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
+import { BadRequest } from '@application/errors/http/BadRequest';
+import { isValidBirthDate } from '@application/shared/birthDateSchema';
 import { ProfileRepository } from '@infra/database/postgres/repositories/ProfileRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
@@ -15,19 +16,27 @@ export class UpdateProfileUseCase {
     height,
     weight,
   }: UpdateProfileUseCase.Input): Promise<UpdateProfileUseCase.Output> {
-    const profile = await this.profileRepository.findByAccountId(accountId);
-
-    if (!profile) {
-      throw new ResourceNotFound('Profile not found.');
+    if (!isValidBirthDate(birthDate)) {
+      throw new BadRequest('Invalid birth date.');
     }
 
-    profile.name = name;
-    profile.birthDate = birthDate;
-    profile.gender = gender;
-    profile.height = height;
-    profile.weight = weight;
+    if (
+      !Number.isFinite(height) || height <= 0 || height > 300
+      || !Number.isFinite(weight) || weight <= 0 || weight > 700
+    ) {
+      throw new BadRequest('Height and weight must be finite positive numbers within valid bounds.');
+    }
 
-    await this.profileRepository.save(profile);
+    await this.profileRepository.save(new Profile({
+      accountId,
+      name: name.trim(),
+      birthDate,
+      gender,
+      height,
+      weight,
+      activityLevel: Profile.ActivityLevel.LIGHT,
+      goal: Profile.Goal.MAINTAIN,
+    }));
   }
 }
 

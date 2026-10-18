@@ -1,4 +1,5 @@
 import { queryClient } from '@app/lib/queryClient';
+import { queryKeys } from '@app/lib/queryKeys';
 import { ProfileService } from '@app/services/ProfileService';
 import { useMutation } from '@tanstack/react-query';
 
@@ -8,7 +9,7 @@ export function useUpdateProfile() {
       await ProfileService.updateProfile(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['account'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.account() });
     },
   });
 

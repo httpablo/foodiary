@@ -71,4 +71,18 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 32,
   },
+  errorContainer: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    gap: 16,
+    maxWidth: 340,
+  },
+  errorText: {
+    lineHeight: 22,
+  },
+  errorActions: {
+    width: '100%',
+    gap: 12,
+    marginTop: 8,
+  },
 });

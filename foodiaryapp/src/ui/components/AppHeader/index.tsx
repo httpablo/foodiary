@@ -16,7 +16,7 @@ export function AppHeader({ title, rightAction }: IAppHeaderProps) {
 
   return (
     <View style={styles.container}>
-      <Button onPress={goBack} size="icon" variant="ghost">
+      <Button accessibilityLabel="Voltar" onPress={goBack} size="icon" variant="ghost">
         <ChevronLeftIcon size={20} color={theme.colors.black[700]} />
       </Button>
 

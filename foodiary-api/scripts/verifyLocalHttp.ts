@@ -64,6 +64,22 @@ async function main() {
     assert.equal(invalid.status, 400);
     assert.equal((await invalid.json()).error.code, 'VALIDATION');
 
+    for (const invalidBirthDate of ['0000-01-01', '2099-01-01']) {
+      const badBirthDateSignup = await request('/auth/sign-up', json('POST', {
+        account: { email, password },
+        profile: {
+          name: 'HTTP Test',
+          birthDate: invalidBirthDate,
+          gender: 'FEMALE',
+          goal: 'MAINTAIN',
+          height: 170,
+          weight: 65,
+          activityLevel: 'LIGHT',
+        },
+      }));
+      assert.equal(badBirthDateSignup.status, 400);
+    }
+
     const signup = await request('/auth/sign-up', json('POST', {
       account: { email, password },
       profile: {
@@ -133,6 +149,47 @@ async function main() {
     assert.deepEqual(Buffer.from(await (await request(firstPhotoUrl)).arrayBuffer()), photo);
     assert.equal((await request(firstPhotoUrl.replace(/signature=[a-f0-9]+/, 'signature=deadbeef'))).status, 404);
 
+    const truncatedMultipart = Buffer.from(
+      '--boundary\r\nContent-Disposition: form-data; name="file"; filename="photo.jpg"\r\nContent-Type: image/jpeg\r\n\r\n\xff\xd8\xff',
+      'binary',
+    );
+    const truncatedPhotoUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+        'Content-Type': 'multipart/form-data; boundary=boundary',
+      },
+      body: truncatedMultipart,
+    });
+    assert.equal(truncatedPhotoUpload.status, 400);
+    assert.equal((await request('/health')).status, 200);
+
+    const exact10MiBPhoto = Buffer.alloc(10 * 1024 * 1024, 0);
+    exact10MiBPhoto[0] = 0xff;
+    exact10MiBPhoto[1] = 0xd8;
+    exact10MiBPhoto[2] = 0xff;
+    const exact10MiBForm = new FormData();
+    exact10MiBForm.append('file', new Blob([exact10MiBPhoto], { type: 'image/jpeg' }), 'exact10m.jpeg');
+    const exact10MiBUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: exact10MiBForm,
+    });
+    assert.equal(exact10MiBUpload.status, 200, await exact10MiBUpload.clone().text());
+
+    const over10MiBPhoto = Buffer.alloc(10 * 1024 * 1024 + 1, 0);
+    over10MiBPhoto[0] = 0xff;
+    over10MiBPhoto[1] = 0xd8;
+    over10MiBPhoto[2] = 0xff;
+    const over10MiBForm = new FormData();
+    over10MiBForm.append('file', new Blob([over10MiBPhoto], { type: 'image/jpeg' }), 'over10m.jpeg');
+    const over10MiBUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: over10MiBForm,
+    });
+    assert.equal(over10MiBUpload.status, 400);
+
     const secondUpload = await request('/profile-photo', {
       method: 'PUT',
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -182,6 +239,20 @@ async function main() {
     assert.equal((await request('/profiles', json('PUT', {
       name: 'Invalid', birthDate: '2000-01-01', gender: 'FEMALE', height: 0, weight: 66,
     }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', json('PUT', {
+      name: 'Invalid', birthDate: '0000-01-01', gender: 'FEMALE', height: 171, weight: 66,
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', json('PUT', {
+      name: 'Invalid', birthDate: '2099-01-01', gender: 'FEMALE', height: 171, weight: 66,
+    }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/profiles', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+      },
+      body: '{"name":"Teste","birthDate":"1990-01-01","gender":"MALE","height":1e400,"weight":80}',
+    })).status, 400);
 
     const goal = await request('/goals', json('PUT', {
       calories: 2100,
@@ -193,19 +264,40 @@ async function main() {
     assert.equal((await request('/goals', json('PUT', {
       calories: -1, proteins: 110, carbohydrates: 220, fats: 75,
     }, signupTokens.accessToken))).status, 400);
+    assert.equal((await request('/goals', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+      },
+      body: '{"calories":1e400,"proteins":150,"carbohydrates":200,"fats":60}',
+    })).status, 400);
 
     const updatedMe = await request('/me', { headers: { Authorization: `Bearer ${signupTokens.accessToken}` } });
     const updatedAccount = await updatedMe.json();
     assert.equal(updatedAccount.profile.name, 'Updated');
+    assert.equal(Number.isFinite(updatedAccount.profile.height), true);
+    assert.equal(Number.isFinite(updatedAccount.profile.weight), true);
     assert.equal(new URL(updatedAccount.profile.photoUrl, base).pathname,
       new URL(secondPhotoUrl, base).pathname);
     assert.equal(updatedAccount.goal.calories, 2100);
+    assert.equal(Number.isFinite(updatedAccount.goal.calories), true);
 
     const meals = await request('/meals?date=2026-10-09', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     assert.equal(meals.status, 200);
     assert.deepEqual((await meals.json()).meals, []);
+    assert.equal((await request('/meals/history')).status, 401);
+    const historyHeaders = { Authorization: `Bearer ${signupTokens.accessToken}` };
+    const emptyHistory = await request('/meals/history', { headers: historyHeaders });
+    assert.equal(emptyHistory.status, 200);
+    assert.deepEqual(await emptyHistory.json(), { meals: [], nextCursor: null });
+    for (const query of ['limit=0', 'limit=51', 'limit=1.5', 'cursor=invalid']) {
+      assert.equal((await request(`/meals/history?${query}`, { headers: historyHeaders })).status, 400);
+    }
+    const invalidYearCursor = Buffer.from(JSON.stringify({ createdAt: '0000-01-01T00:00:00Z', id: 'a' })).toString('base64url');
+    assert.equal((await request(`/meals/history?cursor=${invalidYearCursor}`, { headers: historyHeaders })).status, 400);
     const weekPath = '/meals/weekly-summary?startDate=2026-10-05&timezoneOffsetMinutes=180';
     assert.equal((await request(weekPath)).status, 401);
     assert.equal((await request('/meals/weekly-summary?startDate=2026-10-06', {
@@ -233,6 +325,16 @@ async function main() {
     const form = new FormData();
     form.append('file', new Blob([picture], { type: 'image/jpeg' }), 'test.jpeg');
     assert.equal((await request(upload.url, { method: 'POST', body: form })).status, 401);
+    const truncatedMealUpload = await request(upload.url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+        'Content-Type': 'multipart/form-data; boundary=boundary',
+      },
+      body: truncatedMultipart,
+    });
+    assert.equal(truncatedMealUpload.status, 400);
+    assert.equal((await request('/health')).status, 200);
     const uploaded = await request(upload.url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -362,6 +464,38 @@ async function main() {
     });
     assert.equal((await otherManualDay.json()).meals.length, 0);
 
+    // Tied timestamps and sub-millisecond precision must survive pagination.
+    for (const suffix of ['A', 'B', 'C', 'Queued']) {
+      await pool.query(
+        `INSERT INTO meals (id, account_id, status, input_type, input_file_key, name, foods, created_at)
+         VALUES ($1, $2, $3, 'MANUAL', NULL, 'Histórico', '[]', '2024-01-01T12:00:00.123456Z')`,
+        [`${mealId}history${suffix}`, ownerId, suffix === 'Queued' ? 'QUEUED' : 'SUCCESS'],
+      );
+    }
+    const expectedHistory = await pool.query<{ id: string }>(
+      'SELECT id FROM meals WHERE account_id = $1 AND status = $2 ORDER BY created_at DESC, id DESC',
+      [ownerId, 'SUCCESS'],
+    );
+    const seenIds: string[] = [];
+    let historyCursor: string | null = null;
+    do {
+      const pageResponse = await request(`/meals/history?limit=1${historyCursor ? `&cursor=${encodeURIComponent(historyCursor)}` : ''}`, {
+        headers: historyHeaders,
+      });
+      assert.equal(pageResponse.status, 200, await pageResponse.clone().text());
+      const page = await pageResponse.json();
+      assert.equal(page.meals.length, 1);
+      assert.ok(Array.isArray(page.meals[0].foods));
+      seenIds.push(page.meals[0].id);
+      historyCursor = page.nextCursor;
+      assert.ok(seenIds.length <= expectedHistory.rowCount!);
+    } while (historyCursor);
+    assert.deepEqual(seenIds, expectedHistory.rows.map(row => row.id));
+    const otherHistory = await request('/meals/history', {
+      headers: { Authorization: `Bearer ${otherTokens.accessToken}` },
+    });
+    assert.deepEqual(await otherHistory.json(), { meals: [], nextCursor: null });
+
     assert.equal((await request('/saved-foods')).status, 401);
     const savedFood = manualPayload.foods[0];
     const saveFood = await request('/saved-foods', json('PUT', savedFood, signupTokens.accessToken));
@@ -425,6 +559,8 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     assert.equal((await afterDelete.json()).meals.some((item: { id: string }) => item.id === mealId), false);
+    const historyAfterDelete = await request('/meals/history', { headers: historyHeaders });
+    assert.equal((await historyAfterDelete.json()).meals.some((item: { id: string }) => item.id === mealId), false);
     assert.equal((await request(`/meals/${mealId}/repeat`, json('POST', mealEdit, signupTokens.accessToken))).status, 404);
     const independentCopy = await request(`/meals/${repeatedId}`, {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -439,7 +575,72 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     })).status, 404);
 
-    // eslint-disable-next-line no-console
+    assert.equal((await request('/meals', json('POST', {
+      file: { type: 'audio/webm;codecs=opus', size: 4 },
+      date: '2099-01-01',
+      timezoneOffsetMinutes: 180,
+    }, signupTokens.accessToken))).status, 400);
+
+    const webmBytes = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
+    const webmCreated = await request('/meals', json('POST', {
+      file: { type: 'audio/webm;codecs=opus', size: webmBytes.length },
+      date: '2025-01-15',
+      timezoneOffsetMinutes: 180,
+    }, signupTokens.accessToken));
+    assert.equal(webmCreated.status, 201, await webmCreated.clone().text());
+    const { mealId: webmMealId, uploadSignature: webmSignature } = await webmCreated.json();
+    const webmUpload = JSON.parse(Buffer.from(webmSignature, 'base64').toString('utf8'));
+    const webmForm = new FormData();
+    webmForm.append('file', new Blob([webmBytes], { type: 'audio/webm;codecs=opus' }), 'audio.webm');
+    const webmUploaded = await request(webmUpload.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: webmForm,
+    });
+    assert.equal(webmUploaded.status, 204, await webmUploaded.clone().text());
+    const webmDetail = await request(`/meals/${webmMealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(webmDetail.status, 200);
+    const { meal: webmMeal } = await webmDetail.json();
+    assert.ok(new URL(webmMeal.inputFileURL, base).pathname.endsWith('.webm'));
+    const webmFileResponse = await request(webmMeal.inputFileURL);
+    assert.equal(webmFileResponse.status, 200);
+    assert.equal(webmFileResponse.headers.get('content-type'), 'audio/webm');
+    assert.deepEqual(Buffer.from(await webmFileResponse.arrayBuffer()), webmBytes);
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'SUCCESS']);
+    const webmDay = await request('/meals?date=2025-01-15&timezoneOffsetMinutes=180', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(webmDay.status, 200);
+    assert.equal((await webmDay.json()).meals.some((item: { id: string }) => item.id === webmMealId), true);
+
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'PROCESSING']);
+    assert.equal((await request(`/meals/${webmMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 400);
+
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'FAILED']);
+    assert.equal((await request(`/meals/${webmMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(webmMeal.inputFileURL)).status, 404);
+
+    const uploadingMealResponse = await request('/meals', json('POST', {
+      file: { type: 'image/jpeg', size: picture.length },
+    }, signupTokens.accessToken));
+    assert.equal(uploadingMealResponse.status, 201);
+    const { mealId: uploadingMealId } = await uploadingMealResponse.json();
+    assert.equal((await request(`/meals/${uploadingMealId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 204);
+    assert.equal((await request(`/meals/${uploadingMealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).status, 404);
+
     console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, nutrition label scan, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
@@ -452,7 +653,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error(error);
   process.exitCode = 1;
 });

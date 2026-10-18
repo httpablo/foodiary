@@ -41,5 +41,6 @@ export const styles = StyleSheet.create({
   },
   buttonLabel: {
     letterSpacing: -0.16,
+    flexShrink: 1,
   },
 });

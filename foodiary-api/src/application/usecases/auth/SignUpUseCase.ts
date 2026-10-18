@@ -2,7 +2,9 @@ import { Account } from '@application/entities/Account';
 import { Goal } from '@application/entities/Goal';
 import { Profile } from '@application/entities/Profile';
 import { EmailAlreadyInUse } from '@application/errors/application/EmailAlreadyInUse';
+import { BadRequest } from '@application/errors/http/BadRequest';
 import { GoalCalculator } from '@application/services/GoalCalculator';
+import { isValidBirthDate } from '@application/shared/birthDateSchema';
 import { AccountRepository } from '@infra/database/postgres/repositories/AccountRepository';
 import { SignUpUnitOfWork } from '@infra/database/postgres/uow/SignUpUnitOfWork';
 import { LocalAuthGateway } from '@infra/auth/LocalAuthGateway';
@@ -24,6 +26,19 @@ export class SignUpUseCase {
     },
     profile: profileInfo,
   }: SignUpUseCase.Input): Promise<SignUpUseCase.Output> {
+    this.authGateway.assertConfigured();
+
+    if (!isValidBirthDate(profileInfo.birthDate)) {
+      throw new BadRequest('Invalid birth date.');
+    }
+
+    if (
+      !Number.isFinite(profileInfo.height) || profileInfo.height <= 0 || profileInfo.height > 300
+      || !Number.isFinite(profileInfo.weight) || profileInfo.weight <= 0 || profileInfo.weight > 700
+    ) {
+      throw new BadRequest('Height and weight must be finite positive numbers within valid bounds.');
+    }
+
     const emailAlreadyInUse = await this.accountRepository.findByEmail(email);
 
     if (emailAlreadyInUse) {
@@ -33,6 +48,7 @@ export class SignUpUseCase {
     const account = new Account({ email });
     const profile = new Profile({
       ...profileInfo,
+      name: profileInfo.name.trim(),
       accountId: account.id,
     });
 

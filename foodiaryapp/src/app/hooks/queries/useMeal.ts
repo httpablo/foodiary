@@ -1,3 +1,4 @@
+import { queryKeys } from '@app/lib/queryKeys';
 import { MealsService } from '@app/services/MealsService';
 import { MealStatus } from '@app/types/Meal';
 import { useQuery } from '@tanstack/react-query';
@@ -9,8 +10,8 @@ const processingStatuses = [
 ];
 
 export function useMeal(mealId?: string) {
-  const { data: meal, isFetching } = useQuery({
-    queryKey: ['meal', mealId],
+  const { data: meal, isFetching, isError, error, refetch } = useQuery({
+    queryKey: queryKeys.meal(mealId),
     staleTime: Infinity,
     enabled: !!mealId,
     queryFn: async () => {
@@ -22,6 +23,10 @@ export function useMeal(mealId?: string) {
       return meal;
     },
     refetchInterval: (query) => {
+      if (query.state.status === 'error') {
+        return false;
+      }
+
       const mealStatus = query.state.data?.status;
       if (mealStatus && processingStatuses.includes(mealStatus)) {
         return 3_000;
@@ -36,6 +41,10 @@ export function useMeal(mealId?: string) {
   return {
     meal,
     isLoading: isFetching,
+    isFetching,
     isProcessing,
+    isError,
+    error,
+    refetch,
   };
 }

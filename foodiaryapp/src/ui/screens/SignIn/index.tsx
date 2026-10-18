@@ -5,27 +5,30 @@ import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signInSchema } from './schema';
+import { signInErrorMessage } from './signInError';
 import { styles } from './styles';
 
 export function SignIn() {
   const { top, bottom } = useSafeAreaInsets();
   const { signIn } = useAuth();
   const passwordInputRef = useRef<TextInput>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
   });
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    setSubmitError(null);
     try {
       await signIn(data);
-    } catch {
-      Alert.alert('Não foi possível entrar', 'Verifique suas credenciais e tente novamente.');
+    } catch (error) {
+      setSubmitError(signInErrorMessage(error));
     }
   });
 
@@ -85,6 +88,12 @@ export function SignIn() {
                 </FormGroup>
               )}
             />
+
+            {submitError && (
+              <AppText accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+                {submitError}
+              </AppText>
+            )}
 
             <Button
               onPress={handleSubmit}

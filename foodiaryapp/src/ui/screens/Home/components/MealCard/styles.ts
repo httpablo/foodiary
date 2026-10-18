@@ -43,11 +43,18 @@ export const styles = StyleSheet.create({
   },
   mealStatsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
   },
   mealStat: {
-    width: '50%',
+    flexGrow: 1,
+    maxWidth: '100%',
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+  },
+  statText: {
+    maxWidth: '100%',
+    textAlign: 'center',
   },
 });

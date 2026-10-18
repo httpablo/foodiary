@@ -37,7 +37,8 @@ export class ProcessMealUseCase {
 
   async processClaimed(meal: Meal): Promise<void> {
     try {
-      const result = await this.mealsAIGateway.processMeal(meal);
+      const rawResult = await this.mealsAIGateway.processMeal(meal);
+      const result = MealsAIGateway.validateAndNormalizeResult(meal.id, rawResult);
       await this.queue.completeSuccess(meal, result);
     } catch (error) {
       await this.queue.completeFailure(meal);

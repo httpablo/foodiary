@@ -23,7 +23,7 @@ export function UserHeader() {
 
         <View style={styles.greetings}>
           <AppText size="sm" color={theme.colors.gray[700]}>Olá, 👋</AppText>
-          <AppText weight="semiBold">
+          <AppText weight="semiBold" numberOfLines={1}>
             {account?.profile.name}
           </AppText>
         </View>

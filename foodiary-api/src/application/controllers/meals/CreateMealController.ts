@@ -16,18 +16,21 @@ export class CreateMealController extends Controller<'private', CreateMealContro
     accountId,
     body,
   }: Controller.Request<'private', CreateMealBody>): Promise<Controller.Response<CreateMealController.Response>> {
-    const { file } = body;
+    const { file, date, timezoneOffsetMinutes } = body;
     const inputType = (
-      file.type === 'audio/m4a'
+      file.type.startsWith('audio/')
         ? Meal.InputType.AUDIO
         : Meal.InputType.PICTURE
     );
 
     const { mealId, uploadSignature } = await this.createMealUseCase.execute({
       accountId,
+      date,
+      timezoneOffsetMinutes,
       file: {
         size: file.size,
         inputType,
+        mimeType: file.type,
       },
     });
 

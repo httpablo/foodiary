@@ -1,6 +1,7 @@
 import { InvalidCredentials } from '@application/errors/application/InvalidCredentials';
 import { InvalidRefreshToken } from '@application/errors/application/InvalidRefreshToken';
 import { BadRequest } from '@application/errors/http/BadRequest';
+import { ServiceUnavailable } from '@application/errors/http/ServiceUnavailable';
 import { getPostgresPool } from '@infra/database/postgres/pool';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
@@ -34,6 +35,10 @@ function resetCodeHash(code: string): string {
 
 @Injectable()
 export class LocalAuthGateway {
+  assertConfigured(): void {
+    signingKey();
+  }
+
   async signIn({ email, password }: LocalAuthGateway.SignInParams): Promise<LocalAuthGateway.Tokens> {
     const { rows } = await getPostgresPool().query<AccountAuthRow>(
       'SELECT id, password_hash FROM accounts WHERE LOWER(email) = LOWER($1)',
@@ -114,7 +119,7 @@ export class LocalAuthGateway {
 
   async forgotPassword({ email }: LocalAuthGateway.ForgotPasswordParams): Promise<void> {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Password reset email delivery is not configured.');
+      throw new ServiceUnavailable('Password reset email delivery is not configured.');
     }
 
     const { rows } = await getPostgresPool().query<{ id: string }>(
