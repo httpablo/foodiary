@@ -38,6 +38,9 @@ export class MealsAIGateway {
       throw new Error('Only uploaded meals can be processed.');
     }
     const mealFile = await this.mealsFileStorageGateway.read(meal.inputFileKey);
+    const ext = LocalMealsFileStorageGateway.getFileExtension(meal.inputFileKey)
+      || (meal.inputType === Meal.InputType.AUDIO ? 'm4a' : 'jpeg');
+    const mimeType = LocalMealsFileStorageGateway.getMimeTypeFromFileKey(meal.inputFileKey, meal.inputType);
 
     if (meal.inputType === Meal.InputType.PICTURE) {
       return this.callAI({
@@ -47,7 +50,7 @@ export class MealsAIGateway {
           {
             type: 'image_url',
             image_url: {
-              url: `data:image/jpeg;base64,${mealFile.toString('base64')}`,
+              url: `data:${mimeType};base64,${mealFile.toString('base64')}`,
               detail: 'high',
             },
           },
@@ -59,7 +62,7 @@ export class MealsAIGateway {
       });
     }
 
-    const transcription = await this.transcribe(mealFile);
+    const transcription = await this.transcribe(mealFile, ext, mimeType);
 
     return this.callAI({
       mealId: meal.id,
@@ -103,10 +106,10 @@ export class MealsAIGateway {
     return data;
   }
 
-  private async transcribe(audioFile: Buffer) {
+  private async transcribe(audioFile: Buffer, ext = 'm4a', mimeType = 'audio/m4a') {
     const { text } = await this.getClient().audio.transcriptions.create({
       model: 'gpt-4o-mini-transcribe',
-      file: await toFile(audioFile, 'audio.m4a', { type: 'audio/m4a' }),
+      file: await toFile(audioFile, `audio.${ext}`, { type: mimeType }),
     });
 
     return text;

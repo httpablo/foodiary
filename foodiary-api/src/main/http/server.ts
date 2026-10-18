@@ -194,7 +194,7 @@ export function createHttpServer(): Server {
       }
 
       const storage = new LocalMealsFileStorageGateway();
-      const fileMatch = /^\/meal-files\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|m4a))$/.exec(url.pathname);
+      const fileMatch = /^\/meal-files\/([a-zA-Z0-9]+\/[a-zA-Z0-9]+\.(?:jpeg|png|webp|m4a|mp4|webm|ogg|wav))$/.exec(url.pathname);
       if (request.method === 'GET' && fileMatch) {
         if (!await new MealRepository().hasInputFile(fileMatch[1])) {
           sendJson(response, 404, { error: { code: 'NOT_FOUND', message: 'File not found.' } });
@@ -283,11 +283,34 @@ export function createHttpServer(): Server {
           return;
         }
         const { bytes, contentType } = await readFileUpload(request);
-        const expectedType = meal.inputType === Meal.InputType.AUDIO ? 'audio/m4a' : 'image/jpeg';
-        const validContent = meal.inputType === Meal.InputType.AUDIO
-          ? bytes.toString('ascii', 4, 8) === 'ftyp'
-          : bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-        if (contentType !== expectedType || !validContent) {
+        const normalizedType = contentType.split(';')[0].trim().toLowerCase();
+        const ext = LocalMealsFileStorageGateway.getFileExtension(meal.inputFileKey);
+        const expectedType = LocalMealsFileStorageGateway.getMimeTypeFromFileKey(meal.inputFileKey, meal.inputType);
+        const matchesInputType = meal.inputType === Meal.InputType.AUDIO
+          ? expectedType.startsWith('audio/')
+          : expectedType.startsWith('image/');
+        const validContent = (() => {
+          switch (ext) {
+            case 'jpeg':
+              return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+            case 'png':
+              return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+            case 'webp':
+              return bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+            case 'm4a':
+            case 'mp4':
+              return bytes.toString('ascii', 4, 8) === 'ftyp';
+            case 'webm':
+              return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+            case 'ogg':
+              return bytes.toString('ascii', 0, 4) === 'OggS';
+            case 'wav':
+              return bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WAVE';
+            default:
+              return false;
+          }
+        })();
+        if (!matchesInputType || normalizedType !== expectedType || !validContent) {
           throw new BadRequest('File content does not match the meal type.');
         }
         try {

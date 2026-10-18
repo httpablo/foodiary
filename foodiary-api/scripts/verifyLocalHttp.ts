@@ -94,6 +94,47 @@ async function main() {
     assert.deepEqual(Buffer.from(await (await request(firstPhotoUrl)).arrayBuffer()), photo);
     assert.equal((await request(firstPhotoUrl.replace(/signature=[a-f0-9]+/, 'signature=deadbeef'))).status, 404);
 
+    const truncatedMultipart = Buffer.from(
+      '--boundary\r\nContent-Disposition: form-data; name="file"; filename="photo.jpg"\r\nContent-Type: image/jpeg\r\n\r\n\xff\xd8\xff',
+      'binary',
+    );
+    const truncatedPhotoUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+        'Content-Type': 'multipart/form-data; boundary=boundary',
+      },
+      body: truncatedMultipart,
+    });
+    assert.equal(truncatedPhotoUpload.status, 400);
+    assert.equal((await request('/health')).status, 200);
+
+    const exact10MiBPhoto = Buffer.alloc(10 * 1024 * 1024, 0);
+    exact10MiBPhoto[0] = 0xff;
+    exact10MiBPhoto[1] = 0xd8;
+    exact10MiBPhoto[2] = 0xff;
+    const exact10MiBForm = new FormData();
+    exact10MiBForm.append('file', new Blob([exact10MiBPhoto], { type: 'image/jpeg' }), 'exact10m.jpeg');
+    const exact10MiBUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: exact10MiBForm,
+    });
+    assert.equal(exact10MiBUpload.status, 200, await exact10MiBUpload.clone().text());
+
+    const over10MiBPhoto = Buffer.alloc(10 * 1024 * 1024 + 1, 0);
+    over10MiBPhoto[0] = 0xff;
+    over10MiBPhoto[1] = 0xd8;
+    over10MiBPhoto[2] = 0xff;
+    const over10MiBForm = new FormData();
+    over10MiBForm.append('file', new Blob([over10MiBPhoto], { type: 'image/jpeg' }), 'over10m.jpeg');
+    const over10MiBUpload = await request('/profile-photo', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: over10MiBForm,
+    });
+    assert.equal(over10MiBUpload.status, 400);
+
     const secondUpload = await request('/profile-photo', {
       method: 'PUT',
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -204,6 +245,16 @@ async function main() {
     const form = new FormData();
     form.append('file', new Blob([picture], { type: 'image/jpeg' }), 'test.jpeg');
     assert.equal((await request(upload.url, { method: 'POST', body: form })).status, 401);
+    const truncatedMealUpload = await request(upload.url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${signupTokens.accessToken}`,
+        'Content-Type': 'multipart/form-data; boundary=boundary',
+      },
+      body: truncatedMultipart,
+    });
+    assert.equal(truncatedMealUpload.status, 400);
+    assert.equal((await request('/health')).status, 200);
     const uploaded = await request(upload.url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -443,6 +494,46 @@ async function main() {
     assert.equal((await request(`/meals/${repeatedId}`, {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     })).status, 404);
+
+    assert.equal((await request('/meals', json('POST', {
+      file: { type: 'audio/webm;codecs=opus', size: 4 },
+      date: '2099-01-01',
+      timezoneOffsetMinutes: 180,
+    }, signupTokens.accessToken))).status, 400);
+
+    const webmBytes = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
+    const webmCreated = await request('/meals', json('POST', {
+      file: { type: 'audio/webm;codecs=opus', size: webmBytes.length },
+      date: '2025-01-15',
+      timezoneOffsetMinutes: 180,
+    }, signupTokens.accessToken));
+    assert.equal(webmCreated.status, 201, await webmCreated.clone().text());
+    const { mealId: webmMealId, uploadSignature: webmSignature } = await webmCreated.json();
+    const webmUpload = JSON.parse(Buffer.from(webmSignature, 'base64').toString('utf8'));
+    const webmForm = new FormData();
+    webmForm.append('file', new Blob([webmBytes], { type: 'audio/webm;codecs=opus' }), 'audio.webm');
+    const webmUploaded = await request(webmUpload.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+      body: webmForm,
+    });
+    assert.equal(webmUploaded.status, 204, await webmUploaded.clone().text());
+    const webmDetail = await request(`/meals/${webmMealId}`, {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(webmDetail.status, 200);
+    const { meal: webmMeal } = await webmDetail.json();
+    assert.ok(new URL(webmMeal.inputFileURL, base).pathname.endsWith('.webm'));
+    const webmFileResponse = await request(webmMeal.inputFileURL);
+    assert.equal(webmFileResponse.status, 200);
+    assert.equal(webmFileResponse.headers.get('content-type'), 'audio/webm');
+    assert.deepEqual(Buffer.from(await webmFileResponse.arrayBuffer()), webmBytes);
+    await pool.query('UPDATE meals SET status = $2 WHERE id = $1', [webmMealId, 'SUCCESS']);
+    const webmDay = await request('/meals?date=2025-01-15&timezoneOffsetMinutes=180', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(webmDay.status, 200);
+    assert.equal((await webmDay.json()).meals.some((item: { id: string }) => item.id === webmMealId), true);
 
     // eslint-disable-next-line no-console
     console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, profile photo, and signed file access: OK');
