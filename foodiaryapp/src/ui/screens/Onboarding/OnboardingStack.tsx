@@ -11,6 +11,7 @@ import { CreateAccountStep } from '@ui/screens/Onboarding/steps/CreateAccountSte
 import { GenderStep } from '@ui/screens/Onboarding/steps/GenderStep';
 import { GoalStep } from '@ui/screens/Onboarding/steps/GoalStep';
 import { HeightStep } from '@ui/screens/Onboarding/steps/HeightStep';
+import { TargetWeightStep } from '@ui/screens/Onboarding/steps/TargetWeightStep';
 import { WeightStep } from '@ui/screens/Onboarding/steps/WeightStep';
 
 export type OnboardingStackParamList = {
@@ -19,6 +20,7 @@ export type OnboardingStackParamList = {
   BirthDate: undefined;
   Height: undefined;
   Weight: undefined;
+  TargetWeight: undefined;
   ActivityLevel: undefined;
   CreateAccount: undefined;
 };
@@ -51,6 +53,7 @@ export function OnboardingStack() {
           <Stack.Screen name="Gender" component={GenderStep} />
           <Stack.Screen name="Goal" component={GoalStep} />
           <Stack.Screen name="Height" component={HeightStep} />
+          <Stack.Screen name="TargetWeight" component={TargetWeightStep} />
           <Stack.Screen name="Weight" component={WeightStep} />
         </Stack.Navigator>
       </NavigationContainer>

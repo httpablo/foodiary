@@ -15,6 +15,7 @@ export function Onboarding() {
       birthDate: new Date(NaN),
       height: '',
       weight: '',
+      targetWeight: '',
       account: {
         name: '',
         email: '',

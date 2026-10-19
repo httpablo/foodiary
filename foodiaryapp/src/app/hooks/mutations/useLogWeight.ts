@@ -1,5 +1,5 @@
 import { queryClient } from '@app/lib/queryClient';
-import { queryKeys } from '@app/lib/queryKeys';
+import { invalidateWeightQueries } from '@app/lib/queryKeys';
 import { WeightLogsService } from '@app/services/WeightLogsService';
 import { useMutation } from '@tanstack/react-query';
 
@@ -11,10 +11,7 @@ export function useLogWeight() {
         timezoneOffsetMinutes: payload.timezoneOffsetMinutes ?? new Date().getTimezoneOffset(),
       })
     ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.weightLogs() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.account() });
-    },
+    onSuccess: () => invalidateWeightQueries(queryClient),
   });
 
   return {

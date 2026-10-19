@@ -1,16 +1,14 @@
-import { useLogWeight } from '@app/hooks/mutations/useLogWeight';
-import { useUpdateGoals } from '@app/hooks/mutations/useUpdateGoals';
+import { AppStackNavigationProps } from '@app/navigation/AppStack';
 import { useAccount } from '@app/hooks/queries/useAccount';
 import { useWeeklySummary } from '@app/hooks/queries/useWeeklySummary';
-import { useWeightLogs } from '@app/hooks/queries/useWeightLogs';
 import { NutritionTotals } from '@app/types/WeeklySummary';
 import { AppHeader } from '@ui/components/AppHeader';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
-import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,27 +48,14 @@ function formatDay(date: string): string {
   return `${weekday.toUpperCase()} ${date.slice(8)}`;
 }
 
-function formatFullDate(date: string): string {
-  const local = new Date(`${date}T12:00:00`);
-  return Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(local);
-}
-
 export function WeeklySummaryScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
+  const { navigate } = useNavigation<AppStackNavigationProps>();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selectedMetric, setSelectedMetric] = useState<Metric>('calories');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [weightInput, setWeightInput] = useState('');
-  const [weightFeedback, setWeightFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { summary, isLoading, isRefetching, isError, refetch } = useWeeklySummary(weekStart);
-  const {
-    weightLogs,
-    isRefetching: isRefetchingWeights,
-    refetch: refetchWeightLogs,
-  } = useWeightLogs(14);
-  const { logWeight, isLoggingWeight } = useLogWeight();
-  const { updateGoals, isLoading: isUpdatingGoals } = useUpdateGoals();
   const currentWeek = formatDateToAPI(startOfWeek(new Date()));
   const canGoForward = formatDateToAPI(weekStart) < currentWeek;
   const metric = metrics.find(item => item.key === selectedMetric)!;
@@ -83,66 +68,9 @@ export function WeeklySummaryScreen() {
     ?? [...(summary?.days ?? [])].reverse().find(day => day.totals !== null)
     ?? summary?.days[0];
 
-  const hasGoalDifference = weightLogs ? (
-    weightLogs.currentGoal.calories !== weightLogs.suggestedGoal.calories
-    || weightLogs.currentGoal.proteins !== weightLogs.suggestedGoal.proteins
-    || weightLogs.currentGoal.carbohydrates !== weightLogs.suggestedGoal.carbohydrates
-    || weightLogs.currentGoal.fats !== weightLogs.suggestedGoal.fats
-  ) : false;
-
   function changeWeek(amount: number) {
     setSelectedDate(null);
     setWeekStart(previous => new Date(previous.getFullYear(), previous.getMonth(), previous.getDate() + amount * 7));
-  }
-
-  async function handleLogWeight() {
-    setWeightFeedback(null);
-    const parsed = Number(weightInput.trim().replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 700) {
-      setWeightFeedback({
-        type: 'error',
-        message: 'Informe um peso válido entre 1 e 700 kg.',
-      });
-      return;
-    }
-
-    try {
-      await logWeight({
-        weight: Number(parsed.toFixed(2)),
-        date: today,
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
-      });
-      setWeightInput('');
-      setWeightFeedback({
-        type: 'success',
-        message: `Peso de hoje (${formatNumber(parsed)} kg) registrado com sucesso.`,
-      });
-    } catch {
-      setWeightFeedback({
-        type: 'error',
-        message: 'Não foi possível registrar seu peso agora.',
-      });
-    }
-  }
-
-  async function handleApplySuggestedGoals() {
-    if (!weightLogs) {
-      return;
-    }
-
-    setWeightFeedback(null);
-    try {
-      await updateGoals(weightLogs.suggestedGoal);
-      setWeightFeedback({
-        type: 'success',
-        message: `Metas diárias atualizadas para ${formatNumber(weightLogs.suggestedGoal.calories)} kcal.`,
-      });
-    } catch {
-      setWeightFeedback({
-        type: 'error',
-        message: 'Não foi possível aplicar as metas sugeridas.',
-      });
-    }
   }
 
   return (
@@ -152,10 +80,9 @@ export function WeeklySummaryScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: bottom + 32 }]}
         refreshControl={(
           <RefreshControl
-            refreshing={isRefetching || isRefetchingWeights}
+            refreshing={isRefetching}
             onRefresh={() => {
               void refetch();
-              void refetchWeightLogs();
             }}
           />
         )}
@@ -324,156 +251,18 @@ export function WeeklySummaryScreen() {
               </View>
             </View>
 
-            <View style={styles.section}>
-              <AppText size="lg" weight="semiBold">Evolução de peso e metas</AppText>
-              <AppText size="sm" color={theme.colors.gray[700]}>
-                Registre seu peso de hoje e mantenha suas metas diárias sincronizadas.
-              </AppText>
-
-              {weightFeedback && (
-                <View
-                  style={[
-                    styles.feedbackBanner,
-                    weightFeedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError,
-                  ]}
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="polite"
-                >
-                  <AppText
-                    size="sm"
-                    color={weightFeedback.type === 'error' ? theme.colors.support.red : theme.colors.lime[900]}
-                  >
-                    {weightFeedback.message}
-                  </AppText>
-                </View>
-              )}
-
-              <View style={styles.weightCard}>
-                <View style={styles.weightStatsRow}>
-                  <View style={styles.weightStatBox}>
-                    <AppText size="xs" color={theme.colors.gray[700]} numberOfLines={1}>Peso atual</AppText>
-                    <AppText size="base" weight="semiBold" numberOfLines={1}>
-                      {formatNumber(weightLogs?.currentWeight ?? account?.profile.weight ?? 0)} kg
-                    </AppText>
-                  </View>
-                  <View style={styles.weightStatBox}>
-                    <AppText size="xs" color={theme.colors.gray[700]} numberOfLines={1}>Peso inicial</AppText>
-                    <AppText size="base" weight="semiBold" numberOfLines={1}>
-                      {formatNumber(weightLogs?.startWeight ?? account?.profile.weight ?? 0)} kg
-                    </AppText>
-                  </View>
-                  <View style={styles.weightStatBox}>
-                    <AppText size="xs" color={theme.colors.gray[700]} numberOfLines={1}>Variação</AppText>
-                    <AppText
-                      size="base"
-                      weight="semiBold"
-                      numberOfLines={1}
-                      color={(weightLogs?.weightChange ?? 0) === 0 ? theme.colors.black[700] : theme.colors.lime[900]}
-                    >
-                      {(weightLogs?.weightChange ?? 0) > 0 ? '+' : ''}
-                      {formatNumber(weightLogs?.weightChange ?? 0)} kg
-                    </AppText>
-                  </View>
-                </View>
-
-                <View style={styles.weightFormGroup}>
-                  <Input
-                    placeholder="Peso de hoje (ex: 74,5)"
-                    suffix="kg"
-                    keyboardType="decimal-pad"
-                    value={weightInput}
-                    onChangeText={setWeightInput}
-                    accessibilityLabel="Peso de hoje (kg)"
-                  />
-                  <Button
-                    variant="secondary"
-                    onPress={handleLogWeight}
-                    isLoading={isLoggingWeight}
-                    accessibilityLabel="Registrar peso de hoje"
-                  >
-                    Registrar peso de hoje
-                  </Button>
-                </View>
-
-                {weightLogs && weightLogs.logs.length > 0 && (
-                  <View style={styles.weightHistoryList}>
-                    <AppText size="sm" weight="medium">Últimos registros</AppText>
-                    {weightLogs.logs.slice(0, 5).map(entry => (
-                      <View key={entry.id} style={styles.weightHistoryItem}>
-                        <AppText size="sm" color={theme.colors.gray[700]}>
-                          {formatFullDate(entry.date)}
-                        </AppText>
-                        <AppText size="sm" weight="semiBold">
-                          {formatNumber(entry.weight)} kg
-                        </AppText>
-                      </View>
-                    ))}
-                  </View>
-                )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Acompanhe seu peso"
+              onPress={() => navigate('MyWeight')}
+              style={styles.weightLink}
+            >
+              <View style={styles.weightLinkText}>
+                <AppText weight="semiBold">Acompanhe seu peso</AppText>
+                <AppText size="sm" color={theme.colors.gray[700]}>Registre pesagens e veja a evolução até sua meta</AppText>
               </View>
-
-              {weightLogs && (
-                <View style={styles.recalcCard}>
-                  <View style={styles.recalcHeader}>
-                    <AppText weight="semiBold">Recálculo inteligente de metas</AppText>
-                    <View
-                      style={[
-                        styles.recalcBadge,
-                        hasGoalDifference ? styles.recalcBadgePending : styles.recalcBadgeSynced,
-                      ]}
-                      accessibilityLabel={hasGoalDifference ? 'Ajuste sugerido' : 'Metas sincronizadas'}
-                    >
-                      <AppText
-                        size="xs"
-                        weight="medium"
-                        color={hasGoalDifference ? theme.colors.black[700] : theme.colors.lime[900]}
-                      >
-                        {hasGoalDifference ? 'Ajuste sugerido' : 'Metas sincronizadas'}
-                      </AppText>
-                    </View>
-                  </View>
-
-                  <AppText size="sm" color={theme.colors.gray[700]}>
-                    {hasGoalDifference
-                      ? `Com seu peso atual de ${formatNumber(weightLogs.currentWeight)} kg, sugerimos ajustar suas metas diárias:`
-                      : `Suas metas diárias já estão alinhadas com seu peso atual (${formatNumber(weightLogs.currentWeight)} kg).`}
-                  </AppText>
-
-                  <View style={styles.recalcComparisonRow}>
-                    <View style={styles.recalcColumn}>
-                      <AppText size="xs" color={theme.colors.gray[700]}>Meta atual</AppText>
-                      <AppText size="base" weight="semiBold">
-                        {formatNumber(weightLogs.currentGoal.calories)} kcal
-                      </AppText>
-                      <AppText size="xs" color={theme.colors.gray[700]}>
-                        {formatNumber(weightLogs.currentGoal.proteins)}g P • {formatNumber(weightLogs.currentGoal.carbohydrates)}g C • {formatNumber(weightLogs.currentGoal.fats)}g G
-                      </AppText>
-                    </View>
-                    <View style={styles.recalcColumn}>
-                      <AppText size="xs" color={theme.colors.gray[700]}>Meta sugerida</AppText>
-                      <AppText size="base" weight="semiBold">
-                        {formatNumber(weightLogs.suggestedGoal.calories)} kcal
-                      </AppText>
-                      <AppText size="xs" color={theme.colors.gray[700]}>
-                        {formatNumber(weightLogs.suggestedGoal.proteins)}g P • {formatNumber(weightLogs.suggestedGoal.carbohydrates)}g C • {formatNumber(weightLogs.suggestedGoal.fats)}g G
-                      </AppText>
-                    </View>
-                  </View>
-
-                  {hasGoalDifference && (
-                    <Button
-                      variant="secondary"
-                      disabled={isUpdatingGoals}
-                      isLoading={isUpdatingGoals}
-                      onPress={handleApplySuggestedGoals}
-                      accessibilityLabel="Aplicar metas sugeridas"
-                    >
-                      Aplicar metas sugeridas
-                    </Button>
-                  )}
-                </View>
-              )}
-            </View>
+              <ChevronRightIcon size={20} color={theme.colors.black[700]} />
+            </Pressable>
           </>
         )}
       </ScrollView>

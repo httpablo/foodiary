@@ -20,6 +20,7 @@ export const onboardingSchema = z.object({
     .refine(date => date.getFullYear() >= 1900 && date <= new Date(), 'Informe uma data válida'),
   height: positiveNumber('Informe a sua altura'),
   weight: positiveNumber('Informe o seu peso'),
+  targetWeight: z.string().optional(),
   activityLevel: z.enum(ActivityLevel),
   account: z.object({
     name: z.string().min(1, 'Informe o seu nome'),

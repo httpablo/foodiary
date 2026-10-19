@@ -1,4 +1,5 @@
 import { Profile } from '@application/entities/Profile';
+import { WeightGoal } from '@application/entities/WeightGoal';
 
 export class GoalCalculator {
   private static macroRatios: Record<Profile.Goal, GoalCalculator.MacroRatio> = {
@@ -24,11 +25,22 @@ export class GoalCalculator {
     [Profile.ActivityLevel.ATHLETE]: 1.9,
   };
 
-  static calculate(profile: Profile): GoalCalculator.CalculateGoalResult {
-    const { weight, goal } = profile;
+  private static kcalPerKg = 7700;
+
+  private static calorieFloors: Record<Profile.Gender, number> = {
+    [Profile.Gender.FEMALE]: 1200,
+    [Profile.Gender.MALE]: 1500,
+  };
+
+  static calculate(
+    profile: Profile,
+    weightGoal?: GoalCalculator.WeightGoalInput | null,
+  ): GoalCalculator.CalculateGoalResult {
+    const { weight } = profile;
+    const goal = weightGoal ? Profile.Goal[weightGoal.direction] : profile.goal;
     const { proteins, fats } = this.macroRatios[goal];
 
-    const calories = this.calcCalories(profile);
+    const calories = this.calcCalories(profile, goal, weightGoal);
 
     const proteinGrams = Math.round(weight * proteins);
     const proteinCalories = proteinGrams * 4;
@@ -51,17 +63,30 @@ export class GoalCalculator {
     };
   }
 
-  private static calcCalories({
-    height,
-    weight,
-    gender,
-    birthDate,
-    activityLevel,
-    goal,
-  }: Profile): number {
-    const today = new Date();
-    const birthYear = birthDate.getFullYear();
-    const age = today.getFullYear() - birthYear;
+  static calcAge(birthDate: Date, today = new Date()): number {
+    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    const birthdayPending = today.getUTCMonth() < birthDate.getUTCMonth()
+      || (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() < birthDate.getUTCDate());
+
+    if (birthdayPending) {
+      age -= 1;
+    }
+
+    return Math.max(age, 0);
+  }
+
+  private static calcCalories(
+    {
+      height,
+      weight,
+      gender,
+      birthDate,
+      activityLevel,
+    }: Profile,
+    goal: Profile.Goal,
+    weightGoal?: GoalCalculator.WeightGoalInput | null,
+  ): number {
+    const age = this.calcAge(birthDate);
 
     const bmr =
       gender === Profile.Gender.MALE
@@ -74,11 +99,17 @@ export class GoalCalculator {
       return Math.round(tdee);
     }
 
+    const adjustment = weightGoal
+      ? (weightGoal.paceKgPerWeek * this.kcalPerKg) / 7
+      : 500;
+
     if (goal === Profile.Goal.GAIN) {
-      return Math.round(tdee + 500);
+      return Math.round(tdee + adjustment);
     }
 
-    return Math.round(tdee - 500);
+    const floor = Math.max(bmr, this.calorieFloors[gender]);
+
+    return Math.round(Math.max(tdee - adjustment, floor));
   }
 }
 
@@ -88,6 +119,11 @@ export namespace GoalCalculator {
     proteins: number;
     carbohydrates: number;
     fats: number;
+  };
+
+  export type WeightGoalInput = {
+    direction: WeightGoal.Direction;
+    paceKgPerWeek: number;
   };
 
   export type MacroRatio = {

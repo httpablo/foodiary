@@ -28,7 +28,21 @@ export const queryKeys = {
   weightLogs: (limit?: number) => (
     limit !== undefined ? (['weightLogs', limit] as const) : (['weightLogs'] as const)
   ),
+  weightGoal: () => ['weightGoal'] as const,
+  weightGoalPreview: (targetWeight?: number) => (
+    targetWeight !== undefined
+      ? (['weightGoal', 'preview', targetWeight] as const)
+      : (['weightGoal', 'preview'] as const)
+  ),
 };
+
+export async function invalidateWeightQueries(client: Pick<QueryClient, 'invalidateQueries'>) {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.account() }),
+    client.invalidateQueries({ queryKey: queryKeys.weightLogs() }),
+    client.invalidateQueries({ queryKey: queryKeys.weightGoal() }),
+  ]);
+}
 
 export async function invalidateMealQueries(
   client: Pick<QueryClient, 'invalidateQueries'>,

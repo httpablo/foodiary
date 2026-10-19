@@ -10,6 +10,7 @@ import { ForgotPasswordController } from '@application/controllers/auth/ForgotPa
 import { RefreshTokenController } from '@application/controllers/auth/RefreshTokenController';
 import { SignInController } from '@application/controllers/auth/SignInController';
 import { SignUpController } from '@application/controllers/auth/SignUpController';
+import { RecalculateGoalsController } from '@application/controllers/goals/RecalculateGoalsController';
 import { UpdateGoalController } from '@application/controllers/goals/UpdateGoalController';
 import { CreateMealController } from '@application/controllers/meals/CreateMealController';
 import { CreateManualMealController } from '@application/controllers/meals/CreateManualMealController';
@@ -26,6 +27,10 @@ import { ListSavedFoodsController } from '@application/controllers/savedFoods/Li
 import { SaveFoodController } from '@application/controllers/savedFoods/SaveFoodController';
 import { ListWeightLogsController } from '@application/controllers/weightLogs/ListWeightLogsController';
 import { LogWeightController } from '@application/controllers/weightLogs/LogWeightController';
+import { EndWeightGoalController } from '@application/controllers/weightGoals/EndWeightGoalController';
+import { GetWeightGoalController } from '@application/controllers/weightGoals/GetWeightGoalController';
+import { PreviewWeightGoalController } from '@application/controllers/weightGoals/PreviewWeightGoalController';
+import { SetWeightGoalController } from '@application/controllers/weightGoals/SetWeightGoalController';
 import { ApplicationError } from '@application/errors/application/ApplicationError';
 import { ErrorCode } from '@application/errors/ErrorCode';
 import { BadRequest } from '@application/errors/http/BadRequest';
@@ -61,6 +66,11 @@ const routes: Route[] = [
   { method: 'GET', path: '/me', private: true, controller: GetMeController },
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
+  { method: 'POST', path: '/goals/recalculate', private: true, controller: RecalculateGoalsController },
+  { method: 'GET', path: '/weight-goal', private: true, controller: GetWeightGoalController },
+  { method: 'GET', path: '/weight-goal/preview', private: true, controller: PreviewWeightGoalController },
+  { method: 'PUT', path: '/weight-goal', private: true, controller: SetWeightGoalController },
+  { method: 'DELETE', path: '/weight-goal', private: true, controller: EndWeightGoalController },
   { method: 'GET', path: '/weight-logs', private: true, controller: ListWeightLogsController },
   { method: 'POST', path: '/weight-logs', private: true, controller: LogWeightController },
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },

@@ -29,6 +29,7 @@ export class UpdateGoalUseCase {
       carbohydrates,
       proteins,
       fats,
+      source: Goal.Source.MANUAL,
     }));
   }
 }

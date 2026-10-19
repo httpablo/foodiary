@@ -1,18 +1,23 @@
 import { AuthStackNavigationProps } from '@app/navigation/AuthStack';
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { OnboardingContext } from '.';
 import { onboardingNavigation } from '../OnboardingStack';
-import { orderedSteps } from '../steps';
+import { OnboardingSchema } from '../schema';
+import { getActiveSteps } from '../steps';
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const { goBack } = useNavigation<AuthStackNavigationProps>();
+  const { control, getValues } = useFormContext<OnboardingSchema>();
+  const goal = useWatch({ control, name: 'goal' });
+  const totalSteps = getActiveSteps(goal).length;
 
   const nextStep = useCallback(() => {
     const nextStepIndex = currentStepIndex + 1;
-    const nextStep = orderedSteps[nextStepIndex];
+    const nextStep = getActiveSteps(getValues('goal'))[nextStepIndex];
 
     if (!nextStep) {
       return;
@@ -20,7 +25,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     onboardingNavigation.navigate(nextStep);
     setCurrentStepIndex(nextStepIndex);
-  }, [currentStepIndex]);
+  }, [currentStepIndex, getValues]);
 
   const previousStep = useCallback(() => {
     const previousStepIndex = currentStepIndex - 1;
@@ -38,6 +43,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     <OnboardingContext.Provider
       value={{
         currentStepIndex,
+        totalSteps,
         nextStep,
         previousStep,
       }}

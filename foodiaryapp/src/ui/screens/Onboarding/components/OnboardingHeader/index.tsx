@@ -7,22 +7,21 @@ import { Button } from '@ui/components/Button';
 import { theme } from '@ui/styles/theme';
 
 import { useOnboarding } from '../../context/useOnboarding';
-import { TOTAL_STEPS } from '../../steps';
 import { styles } from './styles';
 
 export function OnboardingHeader() {
   const { top } = useSafeAreaInsets();
-  const { previousStep, currentStepIndex } = useOnboarding();
+  const { previousStep, currentStepIndex, totalSteps } = useOnboarding();
 
   const widthAnimationRef = useRef(new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(widthAnimationRef.current, {
-      toValue: (currentStepIndex + 1) * 100 / TOTAL_STEPS,
+      toValue: (currentStepIndex + 1) * 100 / totalSteps,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [currentStepIndex]);
+  }, [currentStepIndex, totalSteps]);
 
   return (
     <View style={[styles.container, { marginTop: top }]}>

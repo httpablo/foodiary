@@ -32,5 +32,6 @@ export namespace WeightLogsService {
     currentWeight: number;
     currentGoal: WeightGoalSummary;
     suggestedGoal: WeightGoalSummary;
+    weightGoalAchieved: boolean;
   };
 }

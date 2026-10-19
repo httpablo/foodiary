@@ -15,7 +15,9 @@ export const signUpSchema = z.object({
     height: z.number().finite().positive().max(300),
     weight: z.number().finite().positive().max(700),
     activityLevel: z.nativeEnum(Profile.ActivityLevel),
+    targetWeight: z.number().finite().positive().max(700).optional(),
   }),
+  timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export type SignUpBody = z.infer<typeof signUpSchema>;

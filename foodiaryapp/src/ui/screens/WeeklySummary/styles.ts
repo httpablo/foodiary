@@ -84,91 +84,15 @@ export const styles = StyleSheet.create({
   averageHeading: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, alignItems: 'center' },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: theme.colors.gray[200] },
   progressFill: { height: 7, borderRadius: 4 },
-  weightCard: {
+  weightLink: {
     padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[400],
-    borderRadius: 18,
-    gap: 16,
-  },
-  weightStatsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  weightStatBox: {
-    flex: 1,
-    minWidth: 0,
-    backgroundColor: theme.colors.gray[100],
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    gap: 4,
-  },
-  weightFormGroup: {
-    gap: 10,
-  },
-  weightHistoryList: {
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-  },
-  weightHistoryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  recalcCard: {
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[400],
-    gap: 14,
-  },
-  recalcHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  recalcBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  recalcBadgeSynced: {
-    backgroundColor: theme.colors.lime['700/10'],
-  },
-  recalcBadgePending: {
+    minHeight: 64,
+    borderRadius: 16,
     backgroundColor: theme.colors.gray[200],
-  },
-  recalcComparisonRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  recalcColumn: {
-    flex: 1,
-    minWidth: 130,
-    backgroundColor: theme.colors.gray[100],
-    borderRadius: 12,
-    padding: 12,
-    gap: 4,
-  },
-  feedbackBanner: {
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-  },
-  feedbackSuccess: {
-    backgroundColor: theme.colors.lime['700/10'],
-    borderColor: theme.colors.lime[700],
-  },
-  feedbackError: {
-    backgroundColor: theme.colors.support['red/10'],
-    borderColor: theme.colors.support.red,
-  },
+  weightLinkText: { flex: 1, gap: 4 },
 });

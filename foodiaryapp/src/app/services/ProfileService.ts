@@ -26,5 +26,6 @@ export namespace ProfileService {
     height: number;
     weight: number;
     gender: Gender;
+    timezoneOffsetMinutes?: number;
   };
 }

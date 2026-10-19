@@ -16,6 +16,8 @@ import { WeeklySummaryScreen } from '@ui/screens/WeeklySummary';
 import { MealPlanner } from '@ui/screens/MealPlanner';
 import { MealHistory } from '@ui/screens/MealHistory';
 import { NutritionLabelScanner } from '@ui/screens/NutritionLabelScanner';
+import { MyWeight } from '@ui/screens/MyWeight';
+import { WeightGoalSetup } from '@ui/screens/WeightGoalSetup';
 import type { SavedFood } from '@app/types/SavedFood';
 
 type AppStackParamList = {
@@ -39,6 +41,8 @@ type AppStackParamList = {
   MealPlanner: undefined;
   MealHistory: undefined;
   NutritionLabelScanner: { mealDate: string; timezoneOffsetMinutes: number } | undefined;
+  MyWeight: undefined;
+  WeightGoalSetup: undefined;
 };
 
 export type AppStackNavigationProps = NativeStackNavigationProp<AppStackParamList>;
@@ -69,6 +73,8 @@ export function AppStack() {
         <Stack.Screen name="MealPlanner" component={MealPlanner} />
         <Stack.Screen name="MealHistory" component={MealHistory} />
         <Stack.Screen name="NutritionLabelScanner" component={NutritionLabelScanner} />
+        <Stack.Screen name="MyWeight" component={MyWeight} />
+        <Stack.Screen name="WeightGoalSetup" component={WeightGoalSetup} />
       </Stack.Navigator>
     </BottomSheetModalProvider>
   );
