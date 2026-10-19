@@ -10,12 +10,13 @@ import { useNavigation } from '@react-navigation/native';
 import { AppHeader } from '@ui/components/AppHeader';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
+import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
 import { MinusIcon, PlusIcon } from 'lucide-react-native';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './styles';
 
@@ -77,6 +78,7 @@ function ProgressRow({ label, unit, color, current, planned, goal }: {
 export function MealPlanner() {
   const { top, bottom } = useSafeAreaInsets();
   const { goBack, navigate } = useNavigation<AppStackNavigationProps>();
+  const { alert } = useConfirmDialog();
   const [today] = useState(() => new Date());
   const { meals, isInitialLoading: isLoadingMeals, isError: mealsError, reloadMeals } = useMeals(today);
   const { savedFoods, isLoading: isLoadingFoods, isError: foodsError, refetch: reloadFoods } = useSavedFoods();
@@ -99,7 +101,7 @@ export function MealPlanner() {
 
   function addFood(food: SavedFood) {
     if (selected.length >= 50) {
-      Alert.alert('Limite de alimentos', 'Uma refeição pode ter até 50 alimentos.');
+      void alert({ title: 'Limite de alimentos', message: 'Uma refeição pode ter até 50 alimentos.' });
       return;
     }
     setSelected(current => [...current, { food, portion: 1 }]);
@@ -116,15 +118,15 @@ export function MealPlanner() {
     }
     const name = mealName.trim();
     if (!name || name.length > 120) {
-      Alert.alert('Confira a refeição', 'Informe um nome com até 120 caracteres.');
+      void alert({ title: 'Confira a refeição', message: 'Informe um nome com até 120 caracteres.' });
       return;
     }
     if (selected.length === 0) {
-      Alert.alert('Escolha os alimentos', 'Adicione pelo menos um alimento ao prato.');
+      void alert({ title: 'Escolha os alimentos', message: 'Adicione pelo menos um alimento ao prato.' });
       return;
     }
     if (formatDateToAPI(new Date()) !== formatDateToAPI(today)) {
-      Alert.alert('O dia mudou', 'Volte à tela inicial e abra o simulador novamente para usar as metas de hoje.');
+      void alert({ title: 'O dia mudou', message: 'Volte à tela inicial e abra o simulador novamente para usar as metas de hoje.' });
       return;
     }
 
@@ -142,7 +144,7 @@ export function MealPlanner() {
       });
       goBack();
     } catch {
-      Alert.alert('Erro', 'Não foi possível registrar a refeição. Tente novamente.');
+      void alert({ title: 'Erro', message: 'Não foi possível registrar a refeição. Tente novamente.' });
     } finally {
       isSubmitting.current = false;
     }

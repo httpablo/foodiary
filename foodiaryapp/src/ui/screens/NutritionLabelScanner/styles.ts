@@ -14,7 +14,7 @@ export const styles = StyleSheet.create({
   compactButton: { paddingHorizontal: 8 },
   loadingCard: { padding: 24, borderRadius: 16, backgroundColor: theme.colors.gray[100], alignItems: 'center', gap: 12 },
   errorCard: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.support['red/10'] },
-  tipCard: { padding: 18, borderRadius: 16, backgroundColor: theme.colors.lime[400], gap: 8 },
+  tipCard: { padding: 18, borderRadius: 16, backgroundColor: theme.colors.gray[100], borderWidth: 1, borderColor: theme.colors.gray[300], gap: 8 },
   review: { gap: 18 },
   reviewHeader: { gap: 4 },
   calorieCard: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.gray[100], gap: 8 },

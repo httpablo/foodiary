@@ -18,8 +18,8 @@ export class SignUpUnitOfWork {
       );
       await client.query(
         `INSERT INTO profiles
-           (account_id, name, birth_date, gender, height, weight, activity_level, goal, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+           (account_id, name, birth_date, gender, height, weight, initial_weight, activity_level, goal, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9)`,
         [
           profile.accountId,
           profile.name,
@@ -43,6 +43,20 @@ export class SignUpUnitOfWork {
           goal.carbohydrates,
           goal.fats,
           goal.createdAt,
+        ],
+      );
+      await client.query(
+        `INSERT INTO weight_logs
+           (id, account_id, weight, date, updated_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (account_id, date) DO UPDATE
+         SET weight = EXCLUDED.weight, updated_at = EXCLUDED.updated_at`,
+        [
+          `init-${profile.accountId}`,
+          profile.accountId,
+          profile.weight,
+          profile.createdAt.toISOString().slice(0, 10),
+          profile.createdAt,
         ],
       );
       await client.query('COMMIT');

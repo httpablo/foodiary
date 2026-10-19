@@ -25,6 +25,9 @@ export const queryKeys = {
   savedFoods: (search?: string) => (
     search !== undefined ? (['savedFoods', search] as const) : (['savedFoods'] as const)
   ),
+  weightLogs: (limit?: number) => (
+    limit !== undefined ? (['weightLogs', limit] as const) : (['weightLogs'] as const)
+  ),
 };
 
 export async function invalidateMealQueries(

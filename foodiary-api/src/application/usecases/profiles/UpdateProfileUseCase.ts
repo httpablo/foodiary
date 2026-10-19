@@ -2,11 +2,15 @@ import { Profile } from '@application/entities/Profile';
 import { BadRequest } from '@application/errors/http/BadRequest';
 import { isValidBirthDate } from '@application/shared/birthDateSchema';
 import { ProfileRepository } from '@infra/database/postgres/repositories/ProfileRepository';
+import { WeightLogRepository } from '@infra/database/postgres/repositories/WeightLogRepository';
 import { Injectable } from '@kernel/decorators/Injectable';
 
-@Injectable([ProfileRepository])
+@Injectable([ProfileRepository, WeightLogRepository])
 export class UpdateProfileUseCase {
-  constructor(private readonly profileRepository: ProfileRepository) {}
+  constructor(
+    private readonly profileRepository: ProfileRepository,
+    private readonly weightLogRepository: WeightLogRepository = new WeightLogRepository(),
+  ) {}
 
   async execute({
     accountId,
@@ -37,6 +41,12 @@ export class UpdateProfileUseCase {
       activityLevel: Profile.ActivityLevel.LIGHT,
       goal: Profile.Goal.MAINTAIN,
     }));
+
+    await this.weightLogRepository.upsert({
+      accountId,
+      weight,
+      date: new Date().toISOString().slice(0, 10),
+    });
   }
 }
 

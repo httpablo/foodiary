@@ -283,6 +283,39 @@ async function main() {
     assert.equal(updatedAccount.goal.calories, 2100);
     assert.equal(Number.isFinite(updatedAccount.goal.calories), true);
 
+    assert.equal((await request('/weight-logs')).status, 401);
+    const weightLogsInitial = await request('/weight-logs', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    assert.equal(weightLogsInitial.status, 200);
+    const weightLogsData = await weightLogsInitial.json();
+    assert.equal(weightLogsData.currentWeight, 66);
+    assert.equal(weightLogsData.logs.length, 1);
+    assert.ok(weightLogsData.suggestedGoal.calories > 0);
+    assert.equal((await request('/weight-logs', json('POST', {
+      weight: 64.5,
+      date: '2099-01-01',
+    }, signupTokens.accessToken))).status, 400);
+    const pastWeightLog = await request('/weight-logs', json('POST', {
+      weight: 68,
+      date: '2026-01-01',
+    }, signupTokens.accessToken));
+    assert.equal(pastWeightLog.status, 200);
+    const loggedToday = await request('/weight-logs', json('POST', {
+      weight: 63.5,
+      applySuggestedGoal: true,
+    }, signupTokens.accessToken));
+    assert.equal(loggedToday.status, 200);
+    const loggedTodayBody = await loggedToday.json();
+    assert.equal(loggedTodayBody.currentWeight, 63.5);
+    assert.deepEqual(loggedTodayBody.currentGoal, loggedTodayBody.suggestedGoal);
+    const meAfterWeightRecalc = await request('/me', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    });
+    const meAfterWeightRecalcJson = await meAfterWeightRecalc.json();
+    assert.equal(meAfterWeightRecalcJson.profile.weight, 63.5);
+    assert.equal(meAfterWeightRecalcJson.goal.calories, loggedTodayBody.suggestedGoal.calories);
+
     const meals = await request('/meals?date=2026-10-09', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });

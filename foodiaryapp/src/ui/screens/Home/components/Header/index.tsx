@@ -36,26 +36,31 @@ export function Header() {
             <ChevronRightIcon size={20} color={theme.colors.black[700]} />
           </Pressable>
         )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Ver resumo semanal"
-          onPress={() => navigate('WeeklySummary')}
-          style={styles.weeklyLink}
-        >
-          <AppText weight="medium" style={{ flex: 1 }} color={theme.colors.lime[900]}>Ver resumo semanal</AppText>
-          <ChevronRightIcon size={20} color={theme.colors.lime[900]} />
-        </Pressable>
+
+        <View style={styles.navLinks}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver resumo semanal"
+            onPress={() => navigate('WeeklySummary')}
+            style={styles.weeklyLink}
+          >
+            <AppText weight="medium" style={{ flex: 1 }} color={theme.colors.black[700]}>Ver resumo semanal</AppText>
+            <ChevronRightIcon size={20} color={theme.colors.black[700]} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver histórico de refeições"
+            onPress={() => navigate('MealHistory')}
+            style={styles.weeklyLink}
+          >
+            <AppText weight="medium" style={{ flex: 1 }} color={theme.colors.black[700]}>Ver histórico de refeições</AppText>
+            <ChevronRightIcon size={20} color={theme.colors.black[700]} />
+          </Pressable>
+        </View>
 
         <View style={styles.divider} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Ver histórico de refeições"
-          onPress={() => navigate('MealHistory')}
-          style={[styles.weeklyLink, { marginTop: 0, marginBottom: 20 }]}
-        >
-          <AppText weight="medium" style={{ flex: 1 }} color={theme.colors.lime[900]}>Ver histórico de refeições</AppText>
-          <ChevronRightIcon size={20} color={theme.colors.lime[900]} />
-        </Pressable>
+
         <AppText
           weight="medium"
           style={[styles.mealsLabel, { opacity: isLoading ? 0.5 : 1 }]}

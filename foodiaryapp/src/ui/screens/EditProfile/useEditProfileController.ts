@@ -1,6 +1,8 @@
+import { useUpdateGoals } from '@app/hooks/mutations/useUpdateGoals';
 import { useUpdateProfile } from '@app/hooks/mutations/useUpdateProfile';
 import { useUpdateProfilePhoto } from '@app/hooks/mutations/useUpdateProfilePhoto';
 import { useAccount } from '@app/hooks/queries/useAccount';
+import { WeightLogsService } from '@app/services/WeightLogsService';
 import { Gender } from '@app/types/Gender';
 import { useConfirmDialog } from '@ui/components/ConfirmDialog';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
@@ -22,8 +24,9 @@ export function useEditProfileController() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
   const { updateProfile, isLoading } = useUpdateProfile();
+  const { updateGoals } = useUpdateGoals();
   const { updateProfilePhoto, isPhotoUploading } = useUpdateProfilePhoto();
-  const { alert } = useConfirmDialog();
+  const { alert, confirm } = useConfirmDialog();
   const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; width: number; height: number } | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [feedback, setFeedback] = useState<IProfileFeedback | null>(null);
@@ -55,17 +58,54 @@ export function useEditProfileController() {
 
   const handleSubmit = form.handleSubmit(async (data) => {
     setFeedback(null);
+    const previousWeight = account?.profile.weight;
+    const previousHeight = account?.profile.height;
+    const nextWeight = Number(data.weight);
+    const nextHeight = Number(data.height);
+    const metricsChanged = previousWeight !== nextWeight || previousHeight !== nextHeight;
+
     try {
       await updateProfile({
         name: data.name,
         birthDate: formatDateToAPI(data.birthDate),
-        height: Number(data.height),
-        weight: Number(data.weight),
+        height: nextHeight,
+        weight: nextWeight,
         gender: data.gender,
       });
 
       const message = 'Perfil atualizado com sucesso.';
       setFeedback({ type: 'success', message });
+
+      if (metricsChanged) {
+        try {
+          const summary = await WeightLogsService.list(1);
+          const { currentGoal, suggestedGoal } = summary;
+          const differs = currentGoal.calories !== suggestedGoal.calories
+            || currentGoal.proteins !== suggestedGoal.proteins
+            || currentGoal.carbohydrates !== suggestedGoal.carbohydrates
+            || currentGoal.fats !== suggestedGoal.fats;
+
+          if (differs) {
+            void confirm({
+              title: 'Recalcular metas diárias?',
+              message: `Seu perfil foi atualizado. Deseja ajustar suas metas para ${suggestedGoal.calories} kcal (${suggestedGoal.proteins}g P • ${suggestedGoal.carbohydrates}g C • ${suggestedGoal.fats}g G)?`,
+              confirmLabel: 'Aplicar novas metas',
+              cancelLabel: 'Manter atuais',
+              onConfirm: async () => {
+                await updateGoals(suggestedGoal);
+                setFeedback({
+                  type: 'success',
+                  message: `Perfil e metas (${suggestedGoal.calories} kcal) atualizados com sucesso.`,
+                });
+              },
+            });
+            return;
+          }
+        } catch {
+          // Fallback to standard success alert if suggested goal check fails
+        }
+      }
+
       void alert({ title: 'Sucesso!', message });
     } catch {
       const message = 'Não foi possível atualizar o perfil.';

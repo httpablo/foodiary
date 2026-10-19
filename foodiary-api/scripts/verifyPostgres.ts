@@ -20,6 +20,7 @@ import { GoalRepository } from '@infra/database/postgres/repositories/GoalReposi
 import { LocalMealQueueRepository } from '@infra/database/postgres/repositories/LocalMealQueueRepository';
 import { MealRepository } from '@infra/database/postgres/repositories/MealRepository';
 import { ProfileRepository } from '@infra/database/postgres/repositories/ProfileRepository';
+import { WeightLogRepository } from '@infra/database/postgres/repositories/WeightLogRepository';
 import { SignUpUnitOfWork } from '@infra/database/postgres/uow/SignUpUnitOfWork';
 
 async function main() {
@@ -45,6 +46,8 @@ async function main() {
   const pool = getPostgresPool();
   const finiteMigrationSql = await readFile(path.resolve(process.cwd(), 'db/007_finite_checks.sql'), 'utf8');
   await pool.query(finiteMigrationSql);
+  const weightLogsMigrationSql = await readFile(path.resolve(process.cwd(), 'db/008_weight_logs.sql'), 'utf8');
+  await pool.query(weightLogsMigrationSql);
 
   const lowCalorieProfile = new Profile({
     accountId: id,
@@ -65,6 +68,13 @@ async function main() {
     assert.equal((await new AccountRepository().findByEmail(account.email.toUpperCase()))?.id, id);
     assert.equal((await new ProfileRepository().findByAccountId(id))?.name, 'Test');
     assert.equal((await new GoalRepository().findByAccountId(id))?.calories, 2000);
+
+    const weightLogsRepo = new WeightLogRepository();
+    const initialLogs = await weightLogsRepo.list(id);
+    assert.equal(initialLogs.length, 1);
+    assert.equal(initialLogs[0].weight, 65);
+    await weightLogsRepo.upsert({ accountId: id, weight: 64.2, date: initialLogs[0].date });
+    assert.equal((await new ProfileRepository().findByAccountId(id))?.weight, 64.2);
 
     profile.name = 'Updated';
     await new ProfileRepository().save(profile);

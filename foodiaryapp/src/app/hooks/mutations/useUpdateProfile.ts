@@ -10,6 +10,7 @@ export function useUpdateProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.account() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weightLogs() });
     },
   });
 

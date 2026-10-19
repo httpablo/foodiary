@@ -10,6 +10,7 @@ export function useUpdateGoals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.account() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weightLogs() });
     },
   });
 

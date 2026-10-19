@@ -24,6 +24,8 @@ import { UpdateProfileController } from '@application/controllers/profiles/Updat
 import { DeleteSavedFoodController } from '@application/controllers/savedFoods/DeleteSavedFoodController';
 import { ListSavedFoodsController } from '@application/controllers/savedFoods/ListSavedFoodsController';
 import { SaveFoodController } from '@application/controllers/savedFoods/SaveFoodController';
+import { ListWeightLogsController } from '@application/controllers/weightLogs/ListWeightLogsController';
+import { LogWeightController } from '@application/controllers/weightLogs/LogWeightController';
 import { ApplicationError } from '@application/errors/application/ApplicationError';
 import { ErrorCode } from '@application/errors/ErrorCode';
 import { BadRequest } from '@application/errors/http/BadRequest';
@@ -59,6 +61,8 @@ const routes: Route[] = [
   { method: 'GET', path: '/me', private: true, controller: GetMeController },
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
+  { method: 'GET', path: '/weight-logs', private: true, controller: ListWeightLogsController },
+  { method: 'POST', path: '/weight-logs', private: true, controller: LogWeightController },
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
   { method: 'GET', path: '/meals/history', private: true, controller: ListMealHistoryController },
   { method: 'GET', path: '/meals/weekly-summary', private: true, controller: GetWeeklySummaryController },
