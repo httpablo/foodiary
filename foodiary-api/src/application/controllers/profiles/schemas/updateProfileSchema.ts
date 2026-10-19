@@ -8,6 +8,7 @@ export const updateProfileSchema = z.object({
   gender: z.nativeEnum(Profile.Gender),
   height: z.number().finite().positive().max(300),
   weight: z.number().finite().positive().max(700),
+  timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;

@@ -1,0 +1,63 @@
+import { theme } from '@ui/styles/theme';
+import { StyleSheet } from 'react-native';
+
+const card = {
+  padding: 16,
+  borderWidth: 1,
+  borderColor: theme.colors.gray[400],
+  borderRadius: 18,
+  gap: 14,
+} as const;
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.white },
+  content: { paddingHorizontal: 20, paddingTop: 16, gap: 20 },
+  loading: { marginTop: 80 },
+  errorCard: { gap: 20, padding: 20, borderRadius: 16, backgroundColor: theme.colors.gray[100] },
+  heroCard: { backgroundColor: theme.colors.lime[400], borderRadius: 20, padding: 20, gap: 14 },
+  celebrationCard: { backgroundColor: theme.colors.lime[500], borderRadius: 20, padding: 20, gap: 14 },
+  emptyCard: { backgroundColor: theme.colors.gray[100], borderRadius: 20, padding: 20, gap: 12 },
+  actionsRow: { gap: 10 },
+  card,
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  periodToggle: { flexDirection: 'row', gap: 6 },
+  periodChip: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    justifyContent: 'center',
+    backgroundColor: theme.colors.gray[200],
+  },
+  periodChipSelected: { backgroundColor: theme.colors.lime[500] },
+  logForm: { gap: 12 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  linkButton: { minHeight: 44, justifyContent: 'center' },
+  statsRow: { flexDirection: 'row', gap: 8 },
+  statBox: {
+    flex: 1,
+    minWidth: 0,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: theme.colors.gray[100],
+    gap: 2,
+  },
+  comparisonRow: { flexDirection: 'row', gap: 12 },
+  comparisonColumn: { flex: 1, gap: 2 },
+  noteCard: { padding: 14, borderRadius: 14, backgroundColor: theme.colors.gray[100], gap: 10 },
+  historyList: { gap: 2 },
+  historyItem: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[300],
+  },
+  historyValues: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  footerActions: { flexDirection: 'row', gap: 12 },
+  footerAction: { flex: 1 },
+  feedbackBanner: { borderRadius: 12, padding: 12, borderWidth: 1 },
+  feedbackSuccess: { backgroundColor: theme.colors.lime['700/10'], borderColor: theme.colors.lime[700] },
+  feedbackError: { backgroundColor: theme.colors.support['red/10'], borderColor: theme.colors.support.red },
+});

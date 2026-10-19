@@ -9,6 +9,10 @@ export class Goal {
 
   fats: number;
 
+  source: Goal.Source;
+
+  calculatedForWeight: number | null;
+
   readonly createdAt: Date;
 
   constructor(attr: Goal.Attributes) {
@@ -17,6 +21,8 @@ export class Goal {
     this.proteins = attr.proteins;
     this.carbohydrates = attr.carbohydrates;
     this.fats = attr.fats;
+    this.source = attr.source ?? Goal.Source.CALCULATED;
+    this.calculatedForWeight = attr.calculatedForWeight ?? null;
     this.createdAt = attr.createdAt ?? new Date();
   }
 }
@@ -28,6 +34,13 @@ export namespace Goal {
     proteins: number;
     carbohydrates: number;
     fats: number;
+    source?: Goal.Source;
+    calculatedForWeight?: number | null;
     createdAt?: Date;
   };
+
+  export enum Source {
+    CALCULATED = 'CALCULATED',
+    MANUAL = 'MANUAL'
+  }
 }

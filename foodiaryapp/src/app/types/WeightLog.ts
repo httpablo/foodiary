@@ -12,6 +12,8 @@ export type WeightGoalSummary = {
   fats: number;
 };
 
+export type DailyGoalSource = 'CALCULATED' | 'MANUAL';
+
 export type WeightLogsSummary = {
   logs: WeightLogEntry[];
   currentWeight: number;
@@ -19,4 +21,6 @@ export type WeightLogsSummary = {
   weightChange: number;
   currentGoal: WeightGoalSummary;
   suggestedGoal: WeightGoalSummary;
+  goalSource: DailyGoalSource;
+  shouldSuggestAdjustment: boolean;
 };

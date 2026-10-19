@@ -9,11 +9,13 @@ import { useHomeContext } from '../../context/useHomeContext';
 import { CurrentGoal } from '../CurrentGoal';
 import { DateSwitcher } from '../DateSwitcher';
 import { UserHeader } from '../UserHeader';
+import { WeightGoalCard } from '../WeightGoalCard';
 import { styles } from './styles';
 
 export function Header() {
   const { isLoading, date } = useHomeContext();
   const { navigate } = useNavigation<AppStackNavigationProps>();
+  const isToday = formatDateToAPI(date) === formatDateToAPI(new Date());
 
   return (
     <View>
@@ -22,7 +24,8 @@ export function Header() {
       <View style={styles.container}>
         <DateSwitcher />
         <CurrentGoal />
-        {formatDateToAPI(date) === formatDateToAPI(new Date()) && (
+        {isToday && <WeightGoalCard />}
+        {isToday && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Simular próximo prato"

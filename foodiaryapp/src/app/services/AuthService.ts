@@ -69,7 +69,9 @@ export namespace AuthService {
       height: number;
       weight: number;
       activityLevel: ActivityLevel;
+      targetWeight?: number;
     };
+    timezoneOffsetMinutes?: number;
   }
 
   export type SignUpResponse = {

@@ -1,3 +1,4 @@
+import { Goal } from '@app/types/Goal';
 import { OnboardingStackParamList } from './OnboardingStack';
 
 export const orderedSteps: (keyof OnboardingStackParamList)[] = [
@@ -6,8 +7,12 @@ export const orderedSteps: (keyof OnboardingStackParamList)[] = [
   'BirthDate',
   'Height',
   'Weight',
+  'TargetWeight',
   'ActivityLevel',
   'CreateAccount',
 ];
 
-export const TOTAL_STEPS = orderedSteps.length;
+// Quem quer manter o peso não tem peso-alvo, então a etapa é ignorada.
+export function getActiveSteps(goal?: Goal) {
+  return orderedSteps.filter(step => step !== 'TargetWeight' || (goal !== undefined && goal !== Goal.MAINTAIN));
+}

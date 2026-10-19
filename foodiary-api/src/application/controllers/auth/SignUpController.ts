@@ -14,7 +14,7 @@ export class SignUpController extends Controller<'public', SignUpController.Resp
   protected override async handle(
     { body }: Controller.Request<'public', SignUpBody>,
   ): Promise<Controller.Response<SignUpController.Response>> {
-    const { account, profile } = body;
+    const { account, profile, timezoneOffsetMinutes } = body;
 
     const {
       accessToken,
@@ -22,6 +22,7 @@ export class SignUpController extends Controller<'public', SignUpController.Resp
     } = await this.signUpUseCase.execute({
       account,
       profile,
+      timezoneOffsetMinutes,
     });
 
     return {

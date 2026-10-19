@@ -1,4 +1,4 @@
-import { useUpdateGoals } from '@app/hooks/mutations/useUpdateGoals';
+import { useRecalculateGoals } from '@app/hooks/mutations/useRecalculateGoals';
 import { useUpdateProfile } from '@app/hooks/mutations/useUpdateProfile';
 import { useUpdateProfilePhoto } from '@app/hooks/mutations/useUpdateProfilePhoto';
 import { useAccount } from '@app/hooks/queries/useAccount';
@@ -24,7 +24,7 @@ export function useEditProfileController() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
   const { updateProfile, isLoading } = useUpdateProfile();
-  const { updateGoals } = useUpdateGoals();
+  const { recalculateGoals } = useRecalculateGoals();
   const { updateProfilePhoto, isPhotoUploading } = useUpdateProfilePhoto();
   const { alert, confirm } = useConfirmDialog();
   const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; width: number; height: number } | null>(null);
@@ -79,23 +79,19 @@ export function useEditProfileController() {
       if (metricsChanged) {
         try {
           const summary = await WeightLogsService.list(1);
-          const { currentGoal, suggestedGoal } = summary;
-          const differs = currentGoal.calories !== suggestedGoal.calories
-            || currentGoal.proteins !== suggestedGoal.proteins
-            || currentGoal.carbohydrates !== suggestedGoal.carbohydrates
-            || currentGoal.fats !== suggestedGoal.fats;
+          const { shouldSuggestAdjustment, suggestedGoal } = summary;
 
-          if (differs) {
+          if (shouldSuggestAdjustment) {
             void confirm({
-              title: 'Recalcular metas diárias?',
+              title: 'Atualizar metas diárias?',
               message: `Seu perfil foi atualizado. Deseja ajustar suas metas para ${suggestedGoal.calories} kcal (${suggestedGoal.proteins}g P • ${suggestedGoal.carbohydrates}g C • ${suggestedGoal.fats}g G)?`,
               confirmLabel: 'Aplicar novas metas',
               cancelLabel: 'Manter atuais',
               onConfirm: async () => {
-                await updateGoals(suggestedGoal);
+                const { dailyGoal } = await recalculateGoals();
                 setFeedback({
                   type: 'success',
-                  message: `Perfil e metas (${suggestedGoal.calories} kcal) atualizados com sucesso.`,
+                  message: `Perfil e metas (${dailyGoal.calories} kcal) atualizados com sucesso.`,
                 });
               },
             });

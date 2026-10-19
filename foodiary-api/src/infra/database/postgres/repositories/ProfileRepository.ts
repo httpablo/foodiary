@@ -1,7 +1,10 @@
 import { Profile } from '@application/entities/Profile';
 import { ResourceNotFound } from '@application/errors/application/ResourceNotFound';
 import { Injectable } from '@kernel/decorators/Injectable';
+import { Pool } from 'pg';
 import { getPostgresPool } from '../pool';
+
+type Queryable = Pick<Pool, 'query'>;
 
 type ProfileRow = {
   account_id: string;
@@ -54,6 +57,10 @@ export class ProfileRepository {
       goal: row.goal,
       createdAt: row.created_at,
     });
+  }
+
+  async setGoal(accountId: string, goal: Profile.Goal, db: Queryable = getPostgresPool()): Promise<void> {
+    await db.query('UPDATE profiles SET goal = $2 WHERE account_id = $1', [accountId, goal]);
   }
 
   async save(profile: Profile): Promise<void> {

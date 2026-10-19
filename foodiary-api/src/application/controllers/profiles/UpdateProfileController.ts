@@ -21,6 +21,7 @@ export class UpdateProfileController extends Controller<'private', UpdateProfile
       height,
       name,
       weight,
+      timezoneOffsetMinutes,
     } = body;
 
     await this.updateProfileUseCase.execute({
@@ -30,6 +31,7 @@ export class UpdateProfileController extends Controller<'private', UpdateProfile
       height,
       name,
       weight,
+      timezoneOffsetMinutes,
     });
 
     return {

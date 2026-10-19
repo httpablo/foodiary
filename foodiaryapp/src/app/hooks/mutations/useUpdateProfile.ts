@@ -1,17 +1,17 @@
 import { queryClient } from '@app/lib/queryClient';
-import { queryKeys } from '@app/lib/queryKeys';
+import { invalidateWeightQueries } from '@app/lib/queryKeys';
 import { ProfileService } from '@app/services/ProfileService';
 import { useMutation } from '@tanstack/react-query';
 
 export function useUpdateProfile() {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (payload: ProfileService.UpdateProfilePayload) => {
-      await ProfileService.updateProfile(payload);
+      await ProfileService.updateProfile({
+        ...payload,
+        timezoneOffsetMinutes: payload.timezoneOffsetMinutes ?? new Date().getTimezoneOffset(),
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.account() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.weightLogs() });
-    },
+    onSuccess: () => invalidateWeightQueries(queryClient),
   });
 
   return {

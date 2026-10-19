@@ -11,3 +11,5 @@ Para habilitar alimentos salvos em um volume existente, aplique `006_saved_foods
 Os repositórios, consultas e a fila da API usam PostgreSQL. Defina `DATABASE_URL` conforme o valor de `.env.example` para executá-los localmente. O worker reserva cada refeição com `FOR UPDATE SKIP LOCKED`, evitando que duas instâncias processem a mesma refeição ao mesmo tempo.
 
 A autenticação local usa `AUTH_JWT_SECRET` (pelo menos 32 bytes). Gere um segredo para cada ambiente e mantenha-o fora do Git. Senhas são derivadas com scrypt, tokens de acesso expiram em 15 minutos e refresh tokens são rotacionados e armazenados como hash no banco. Para a recuperação de senha em desenvolvimento, o código de seis dígitos aparece no terminal da API; envio de e-mail ainda não está configurado. Em `NODE_ENV=production`, a solicitação de recuperação falha até que a entrega de e-mail seja implementada.
+
+Para habilitar metas de peso em um volume existente, aplique `008_weight_logs.sql` e depois `009_weight_goals.sql` com o mesmo comando. A migração é idempotente e marca as metas diárias existentes como calculadas para o peso atual do perfil.

@@ -1,13 +1,15 @@
 import { Account } from '@application/entities/Account';
 import { Goal } from '@application/entities/Goal';
 import { Profile } from '@application/entities/Profile';
+import { WeightGoal } from '@application/entities/WeightGoal';
 import { EmailAlreadyInUse } from '@application/errors/application/EmailAlreadyInUse';
 import { Injectable } from '@kernel/decorators/Injectable';
 import { getPostgresPool } from '../pool';
+import { WeightGoalRepository } from '../repositories/WeightGoalRepository';
 
 @Injectable()
 export class SignUpUnitOfWork {
-  async run({ account, goal, profile, passwordHash }: SignUpUnitOfWork.RunParams): Promise<void> {
+  async run({ account, goal, profile, passwordHash, weightGoal, initialLogDate }: SignUpUnitOfWork.RunParams): Promise<void> {
     const client = await getPostgresPool().connect();
 
     try {
@@ -34,14 +36,16 @@ export class SignUpUnitOfWork {
       );
       await client.query(
         `INSERT INTO goals
-           (account_id, calories, proteins, carbohydrates, fats, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+           (account_id, calories, proteins, carbohydrates, fats, source, calculated_for_weight, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           goal.accountId,
           goal.calories,
           goal.proteins,
           goal.carbohydrates,
           goal.fats,
+          goal.source,
+          goal.calculatedForWeight ?? profile.weight,
           goal.createdAt,
         ],
       );
@@ -55,10 +59,15 @@ export class SignUpUnitOfWork {
           `init-${profile.accountId}`,
           profile.accountId,
           profile.weight,
-          profile.createdAt.toISOString().slice(0, 10),
+          initialLogDate ?? profile.createdAt.toISOString().slice(0, 10),
           profile.createdAt,
         ],
       );
+
+      if (weightGoal) {
+        await new WeightGoalRepository().insert(weightGoal, client);
+      }
+
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK');
@@ -81,5 +90,7 @@ export namespace SignUpUnitOfWork {
     goal: Goal;
     profile: Profile;
     passwordHash: string;
+    weightGoal?: WeightGoal;
+    initialLogDate?: string;
   };
 }

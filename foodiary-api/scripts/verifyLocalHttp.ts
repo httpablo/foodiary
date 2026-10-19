@@ -7,6 +7,7 @@ import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { addDays, localDateFromOffset } from '@application/shared/localDate';
 import { createHttpServer } from '@main/http/server';
 import { getPostgresPool } from '@infra/database/postgres/pool';
 import { LocalMealsFileStorageGateway } from '@infra/gateways/LocalMealsFileStorageGateway';
@@ -33,6 +34,7 @@ async function main() {
   const base = `http://127.0.0.1:${port}`;
   const email = `http-check-${Date.now()}@example.test`;
   const otherEmail = `http-check-other-${Date.now()}@example.test`;
+  const goalEmail = `http-check-goal-${Date.now()}@example.test`;
   const password = 'http-password-123';
   const pool = getPostgresPool();
 
@@ -309,12 +311,257 @@ async function main() {
     const loggedTodayBody = await loggedToday.json();
     assert.equal(loggedTodayBody.currentWeight, 63.5);
     assert.deepEqual(loggedTodayBody.currentGoal, loggedTodayBody.suggestedGoal);
+    assert.equal(loggedTodayBody.weightGoalAchieved, false);
+    const logsAfterRecalc = await (await request('/weight-logs', {
+      headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
+    })).json();
+    // The start weight is the sign-up weight, not the oldest log of the window.
+    assert.equal(logsAfterRecalc.startWeight, 65);
+    assert.equal(logsAfterRecalc.weightChange, -1.5);
+    assert.equal(logsAfterRecalc.goalSource, 'CALCULATED');
+    assert.equal(logsAfterRecalc.shouldSuggestAdjustment, false);
     const meAfterWeightRecalc = await request('/me', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     });
     const meAfterWeightRecalcJson = await meAfterWeightRecalc.json();
     assert.equal(meAfterWeightRecalcJson.profile.weight, 63.5);
     assert.equal(meAfterWeightRecalcJson.goal.calories, loggedTodayBody.suggestedGoal.calories);
+
+    // Weight goal flow.
+    const goalSignupBody = (targetWeight?: number) => ({
+      account: { email: goalEmail, password },
+      profile: {
+        name: 'Goal User', birthDate: '1990-05-20', gender: 'FEMALE', goal: 'MAINTAIN',
+        height: 170, weight: 80, activityLevel: 'ATHLETE',
+        ...(targetWeight === undefined ? {} : { targetWeight }),
+      },
+    });
+    for (const badTarget of [40, 80.2, 20, 800]) {
+      assert.equal((await request('/auth/sign-up', json('POST', goalSignupBody(badTarget)))).status, 400);
+    }
+    const goalSignup = await request('/auth/sign-up', json('POST', goalSignupBody(72)));
+    assert.equal(goalSignup.status, 201);
+    const goalToken = (await goalSignup.json()).accessToken as string;
+    const goalAuth = { Authorization: `Bearer ${goalToken}` };
+    const getJson = async (path: string) => {
+      const response = await request(path, { headers: goalAuth });
+      assert.equal(response.status, 200, path);
+      return response.json();
+    };
+    const today = localDateFromOffset(0);
+
+    assert.equal((await request('/weight-goal')).status, 401);
+    assert.equal((await request('/weight-goal/preview?targetWeight=70')).status, 401);
+    const signupOverview = await getJson('/weight-goal');
+    assert.equal(signupOverview.currentWeight, 80);
+    assert.equal(signupOverview.trendWeight, 80);
+    assert.deepEqual(signupOverview.healthyRange, { min: 53.5, max: 72 });
+    assert.equal(signupOverview.weightGoal.status, 'ACTIVE');
+    assert.equal(signupOverview.weightGoal.direction, 'LOSE');
+    assert.equal(signupOverview.weightGoal.paceKgPerWeek, 0.5);
+    assert.equal(signupOverview.weightGoal.startWeight, 80);
+    assert.equal(signupOverview.weightGoal.startDate, today);
+    assert.equal(signupOverview.weightGoal.achievedAt, null);
+    assert.equal(signupOverview.weightGoal.progress.plannedDate, addDays(today, 16 * 7));
+    assert.equal(signupOverview.weightGoal.progress.trackStatus, 'NOT_ENOUGH_DATA');
+    assert.equal(signupOverview.weightGoal.progress.projectedDate, null);
+    assert.equal(signupOverview.weightGoal.progress.weeklyRateKg, null);
+    assert.equal(signupOverview.weightGoal.progress.percent, 0);
+    assert.equal(signupOverview.weightGoal.progress.remainingKg, 8);
+    const signupMe = await getJson('/me');
+    assert.equal(signupMe.profile.goal, 'LOSE');
+
+    // Preview.
+    assert.equal((await request('/weight-goal/preview?targetWeight=50', { headers: goalAuth })).status, 400);
+    assert.equal((await request('/weight-goal/preview?targetWeight=79.8', { headers: goalAuth })).status, 400);
+    assert.equal((await request('/weight-goal/preview?targetWeight=abc', { headers: goalAuth })).status, 400);
+    assert.equal((await request('/weight-goal/preview', { headers: goalAuth })).status, 400);
+    const losePreview = await getJson('/weight-goal/preview?targetWeight=75');
+    assert.equal(losePreview.direction, 'LOSE');
+    assert.equal(losePreview.currentWeight, 80);
+    assert.equal(losePreview.targetBmi, 26);
+    assert.deepEqual(losePreview.options.map((option: { key: string }) => option.key), ['RELAXED', 'RECOMMENDED', 'AGGRESSIVE']);
+    assert.deepEqual(losePreview.options.map((option: { paceKgPerWeek: number }) => option.paceKgPerWeek), [0.25, 0.5, 0.75]);
+    assert.deepEqual(losePreview.options.map((option: { weeks: number }) => option.weeks), [20, 10, 7]);
+    assert.equal(losePreview.options[1].estimatedDate, addDays(today, 70));
+    assert.ok(losePreview.options[0].dailyGoal.calories > losePreview.options[1].dailyGoal.calories);
+    assert.ok(losePreview.options[1].dailyGoal.calories > losePreview.options[2].dailyGoal.calories);
+    assert.equal(losePreview.warnings.length, 1);
+    assert.equal(losePreview.currentDailyGoal.calories, signupMe.goal.calories);
+    const gainPreview = await getJson('/weight-goal/preview?targetWeight=150');
+    assert.equal(gainPreview.direction, 'GAIN');
+    assert.deepEqual(gainPreview.options.map((option: { paceKgPerWeek: number }) => option.paceKgPerWeek), [0.1, 0.25, 0.4]);
+    assert.equal(gainPreview.warnings.length, 2);
+    assert.ok(gainPreview.options[2].dailyGoal.calories > gainPreview.options[0].dailyGoal.calories);
+    const inRangePreview = await getJson('/weight-goal/preview?targetWeight=70');
+    assert.deepEqual(inRangePreview.warnings, []);
+
+    // Set goal.
+    for (const invalid of [
+      { targetWeight: 70, paceKgPerWeek: 0 },
+      { targetWeight: 70, paceKgPerWeek: 0.81 },
+      { targetWeight: 50, paceKgPerWeek: 0.5 },
+      { targetWeight: 79.9, paceKgPerWeek: 0.5 },
+      { targetWeight: 20, paceKgPerWeek: 0.5 },
+    ]) {
+      assert.equal((await request('/weight-goal', json('PUT', invalid, goalToken))).status, 400);
+    }
+    assert.equal((await request('/weight-goal', json('PUT', { targetWeight: 70, paceKgPerWeek: 0.5 }))).status, 401);
+    const calorieBefore = (await getJson('/me')).goal.calories;
+    const noApply = await request('/weight-goal', json('PUT', {
+      targetWeight: 75, paceKgPerWeek: 0.25, applyToDailyGoals: false,
+    }, goalToken));
+    assert.equal(noApply.status, 200);
+    assert.equal((await noApply.json()).weightGoal.targetWeight, 75);
+    assert.equal((await getJson('/me')).goal.calories, calorieBefore);
+    const setGoal = await request('/weight-goal', json('PUT', {
+      targetWeight: 70, paceKgPerWeek: 0.75, timezoneOffsetMinutes: 0,
+    }, goalToken));
+    assert.equal(setGoal.status, 200);
+    const setGoalBody = await setGoal.json();
+    assert.equal(setGoalBody.weightGoal.targetWeight, 70);
+    assert.equal(setGoalBody.weightGoal.paceKgPerWeek, 0.75);
+    assert.equal(setGoalBody.weightGoal.progress.plannedDate, addDays(today, 14 * 7));
+    const goalOwner = (await pool.query<{ id: string }>('SELECT id FROM accounts WHERE email = $1', [goalEmail])).rows[0].id;
+    const goalRows = await pool.query<{ status: string }>(
+      'SELECT status FROM weight_goals WHERE account_id = $1 ORDER BY created_at', [goalOwner],
+    );
+    assert.deepEqual(goalRows.rows.map(row => row.status), ['ABANDONED', 'ABANDONED', 'ACTIVE']);
+    const afterSet = await getJson('/me');
+    assert.notEqual(afterSet.goal.calories, calorieBefore);
+    assert.equal(afterSet.profile.goal, 'LOSE');
+
+    // Progress and projection from logs since the goal started (simulates a goal set 14 days ago).
+    await pool.query(
+      'UPDATE weight_goals SET start_date = $2::date WHERE account_id = $1 AND status = $3',
+      [goalOwner, addDays(today, -14), 'ACTIVE'],
+    );
+    for (const [daysAgo, weight] of [[14, 80], [7, 79]]) {
+      assert.equal((await request('/weight-logs', json('POST', {
+        weight, date: addDays(today, -daysAgo),
+      }, goalToken))).status, 200);
+    }
+    const first = await request('/weight-logs', json('POST', { weight: 78 }, goalToken));
+    assert.equal((await first.json()).weightGoalAchieved, false);
+    const progressOverview = await getJson('/weight-goal');
+    assert.equal(progressOverview.currentWeight, 78);
+    assert.equal(progressOverview.trendWeight, 78);
+    assert.equal(progressOverview.weightGoal.progress.changedKg, 2);
+    assert.equal(progressOverview.weightGoal.progress.percent, 20);
+    assert.equal(progressOverview.weightGoal.progress.remainingKg, 8);
+    assert.equal(progressOverview.weightGoal.progress.weeklyRateKg, 1);
+    assert.equal(progressOverview.weightGoal.progress.projectedDate, addDays(today, 56));
+    assert.equal(progressOverview.weightGoal.progress.trackStatus, 'AHEAD');
+
+    // Daily goal suggestion uses the weight goal pace and respects the source.
+    const goalLogs = await getJson('/weight-logs');
+    assert.equal(goalLogs.startWeight, 80);
+    assert.equal(goalLogs.weightChange, -2);
+    assert.equal(goalLogs.goalSource, 'CALCULATED');
+    assert.equal(goalLogs.shouldSuggestAdjustment, true);
+    const aggressive = await getJson('/weight-goal/preview?targetWeight=70');
+    assert.ok(Math.abs(goalLogs.suggestedGoal.calories - aggressive.options[2].dailyGoal.calories) <= 25);
+    const manualCalories = { calories: 1900, proteins: 120, carbohydrates: 200, fats: 60 };
+    assert.equal((await request('/goals', json('PUT', manualCalories, goalToken))).status, 204);
+    const manualLogs = await getJson('/weight-logs');
+    assert.equal(manualLogs.goalSource, 'MANUAL');
+    assert.equal(manualLogs.shouldSuggestAdjustment, false);
+    assert.deepEqual(manualLogs.currentGoal, manualCalories);
+    assert.equal((await request('/goals/recalculate', { method: 'POST' })).status, 401);
+    const recalculated = await request('/goals/recalculate', { method: 'POST', headers: goalAuth });
+    assert.equal(recalculated.status, 200);
+    const recalculatedBody = await recalculated.json();
+    assert.deepEqual(recalculatedBody.dailyGoal, goalLogs.suggestedGoal);
+    const calculatedLogs = await getJson('/weight-logs');
+    assert.equal(calculatedLogs.goalSource, 'CALCULATED');
+    assert.equal(calculatedLogs.shouldSuggestAdjustment, false);
+    assert.deepEqual(calculatedLogs.currentGoal, recalculatedBody.dailyGoal);
+
+    // Profile edit preserves the goal and activity level, uses the local date and checks achievement.
+    const profileBody = { name: 'Goal User 2', birthDate: '1990-05-20', gender: 'FEMALE', height: 170 };
+    assert.equal((await request('/weight-goal', json('PUT', {
+      targetWeight: 82, paceKgPerWeek: 0.3,
+    }, goalToken))).status, 200);
+    assert.equal((await request('/profiles', json('PUT', {
+      ...profileBody, weight: 79, timezoneOffsetMinutes: -840,
+    }, goalToken))).status, 204);
+    const editedMe = await getJson('/me');
+    assert.equal(editedMe.profile.goal, 'GAIN');
+    assert.equal(editedMe.profile.name, 'Goal User 2');
+    const editedProfile = await pool.query<{ activity_level: string }>(
+      'SELECT activity_level FROM profiles WHERE account_id = $1', [goalOwner],
+    );
+    assert.equal(editedProfile.rows[0].activity_level, 'ATHLETE');
+    const localLog = await pool.query<{ weight: number }>(
+      'SELECT weight FROM weight_logs WHERE account_id = $1 AND date = $2::date',
+      [goalOwner, localDateFromOffset(-840)],
+    );
+    assert.equal(localLog.rows[0].weight, 79);
+    assert.equal((await getJson('/weight-goal')).weightGoal.status, 'ACTIVE');
+    assert.equal((await request('/profiles', json('PUT', {
+      ...profileBody, weight: 82.4, timezoneOffsetMinutes: -840,
+    }, goalToken))).status, 204);
+    const achievedByProfile = await getJson('/weight-goal');
+    assert.equal(achievedByProfile.weightGoal.status, 'ACHIEVED');
+    assert.equal((await getJson('/me')).profile.goal, 'MAINTAIN');
+    assert.equal((await request('/weight-goal', { method: 'DELETE', headers: goalAuth })).status, 200);
+    assert.equal((await getJson('/weight-goal')).weightGoal, null);
+
+    // Achieving the goal by logging a weight.
+    assert.equal((await request('/weight-goal', json('PUT', {
+      targetWeight: 75, paceKgPerWeek: 0.5, applyToDailyGoals: false,
+    }, goalToken))).status, 200);
+    const reached = await request('/weight-logs', json('POST', {
+      weight: 74.8, timezoneOffsetMinutes: -840,
+    }, goalToken));
+    assert.equal(reached.status, 200);
+    assert.equal((await reached.json()).weightGoalAchieved, true);
+    const again = await request('/weight-logs', json('POST', {
+      weight: 74.6, timezoneOffsetMinutes: -840,
+    }, goalToken));
+    assert.equal((await again.json()).weightGoalAchieved, false);
+    const achieved = await getJson('/weight-goal');
+    assert.equal(achieved.weightGoal.status, 'ACHIEVED');
+    assert.ok(achieved.weightGoal.achievedAt);
+    assert.equal(achieved.weightGoal.progress.percent, 100);
+    assert.equal(achieved.weightGoal.progress.remainingKg, 0);
+    assert.equal((await getJson('/weight-logs')).startWeight, 82.4);
+
+    // Ending: acknowledges achievements and keeps manual daily goals untouched.
+    assert.equal((await request('/goals', json('PUT', manualCalories, goalToken))).status, 204);
+    const ended = await request('/weight-goal', { method: 'DELETE', headers: goalAuth });
+    assert.equal(ended.status, 200);
+    assert.equal((await ended.json()).weightGoal, null);
+    const afterEnd = await getJson('/me');
+    assert.equal(afterEnd.profile.goal, 'MAINTAIN');
+    assert.equal(afterEnd.goal.calories, manualCalories.calories);
+    assert.equal((await request('/weight-goal', { method: 'DELETE', headers: goalAuth })).status, 200);
+    const acknowledgedRows = await pool.query(
+      'SELECT 1 FROM weight_goals WHERE account_id = $1 AND status = \'ACHIEVED\' AND acknowledged_at IS NOT NULL', [goalOwner],
+    );
+    assert.equal(acknowledgedRows.rowCount, 2);
+
+    // Abandoning an active goal with calculated daily goals returns them to maintenance.
+    assert.equal((await request('/weight-goal', json('PUT', {
+      targetWeight: 70, paceKgPerWeek: 0.5,
+    }, goalToken))).status, 200);
+    const activeCalories = (await getJson('/me')).goal.calories;
+    const abandoned = await request('/weight-goal', { method: 'DELETE', headers: goalAuth });
+    assert.equal(abandoned.status, 200);
+    assert.equal((await abandoned.json()).weightGoal, null);
+    const maintenanceMe = await getJson('/me');
+    assert.equal(maintenanceMe.profile.goal, 'MAINTAIN');
+    assert.ok(maintenanceMe.goal.calories > activeCalories);
+    const maintenanceLogs = await getJson('/weight-logs');
+    assert.equal(maintenanceLogs.goalSource, 'CALCULATED');
+    assert.deepEqual(maintenanceLogs.currentGoal, maintenanceLogs.suggestedGoal);
+    assert.equal(maintenanceLogs.startWeight, 80);
+
+    // Applying a suggested goal while logging keeps the source calculated.
+    const applied = await request('/weight-logs', json('POST', {
+      weight: 77, timezoneOffsetMinutes: -840, applySuggestedGoal: true,
+    }, goalToken));
+    assert.deepEqual((await applied.json()).currentGoal, (await getJson('/weight-logs')).suggestedGoal);
 
     const meals = await request('/meals?date=2026-10-09', {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
@@ -678,6 +925,7 @@ async function main() {
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
     await pool.query('DELETE FROM accounts WHERE email = $1', [otherEmail]);
+    await pool.query('DELETE FROM accounts WHERE email = $1', [goalEmail]);
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await pool.end();
     await rm(mealsDirectory, { recursive: true, force: true });

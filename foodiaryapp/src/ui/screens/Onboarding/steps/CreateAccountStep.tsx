@@ -1,5 +1,6 @@
 import { useAuth } from '@app/contexts/AuthContext/useAuth';
 import { ErrorCode } from '@app/types/ErrorCode';
+import { Goal } from '@app/types/Goal';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { useConfirmDialog } from '@ui/components/ConfirmDialog';
@@ -7,6 +8,7 @@ import { FormGroup } from '@ui/components/FormGroup';
 import { Input } from '@ui/components/Input';
 import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
+import { parseDecimal } from '@ui/utils/parseDecimal';
 import { isAxiosError } from 'axios';
 import { useRef, useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
@@ -29,6 +31,9 @@ export function CreateAccountStep() {
     setSubmitError(null);
     try {
       const birthDate = formatDateToAPI(data.birthDate);
+      const targetWeight = data.goal !== Goal.MAINTAIN && data.targetWeight?.trim()
+        ? parseDecimal(data.targetWeight)
+        : Number.NaN;
 
       await signUp({
         account: {
@@ -43,7 +48,9 @@ export function CreateAccountStep() {
           goal: data.goal,
           height: Number(data.height),
           weight: Number(data.weight),
+          ...(Number.isFinite(targetWeight) && { targetWeight }),
         },
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       });
     } catch (error) {
       if (isAxiosError(error) && error.response?.data?.error?.code === ErrorCode.EMAIL_ALREADY_IN_USE) {
