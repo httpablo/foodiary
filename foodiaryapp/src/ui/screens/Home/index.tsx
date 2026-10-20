@@ -1,3 +1,5 @@
+import { useStreakReminderSync } from '@app/hooks/app/useStreakReminderSync';
+import { AchievementsModal } from '@ui/components/AchievementsModal';
 import { WelcomeModal } from '@ui/components/WelcomeModal';
 import { FlatList, RefreshControl, View } from 'react-native';
 
@@ -27,6 +29,7 @@ export function Home() {
     handlePreviousDay,
     handleRefresh,
   } = useHomeController();
+  useStreakReminderSync();
 
   if (isInitialLoading) {
     return <FullScreenLoader />;
@@ -35,6 +38,7 @@ export function Home() {
   return (
     <View style={[styles.container, { paddingTop: top }]}>
       <WelcomeModal />
+      <AchievementsModal />
 
       <HomeProvider
         date={date}

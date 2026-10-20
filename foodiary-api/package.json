@@ -10,7 +10,8 @@
     "verify:auth": "tsx scripts/verifyLocalAuth.ts",
     "verify:http": "tsx scripts/verifyLocalHttp.ts",
     "verify:queue": "tsx scripts/verifyLocalQueue.ts",
-    "verify": "pnpm typecheck && pnpm lint && pnpm verify:postgres && pnpm verify:auth && pnpm verify:http && pnpm verify:queue",
+    "verify:gamification": "tsx scripts/verifyGamification.ts",
+    "verify": "pnpm typecheck && pnpm lint && pnpm verify:postgres && pnpm verify:auth && pnpm verify:http && pnpm verify:queue && pnpm verify:gamification",
     "dev:local": "tsx watch src/main/http/start.ts",
     "start:local": "tsx src/main/http/start.ts"
   },

@@ -6,6 +6,7 @@ import {
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 
+import { Achievements } from '@ui/screens/Achievements';
 import { EditGoals } from '@ui/screens/EditGoals';
 import { Account } from '@ui/screens/Account';
 import { EditProfile } from '@ui/screens/EditProfile';
@@ -43,6 +44,7 @@ type AppStackParamList = {
   NutritionLabelScanner: { mealDate: string; timezoneOffsetMinutes: number } | undefined;
   MyWeight: undefined;
   WeightGoalSetup: undefined;
+  Achievements: undefined;
 };
 
 export type AppStackNavigationProps = NativeStackNavigationProp<AppStackParamList>;
@@ -75,6 +77,7 @@ export function AppStack() {
         <Stack.Screen name="NutritionLabelScanner" component={NutritionLabelScanner} />
         <Stack.Screen name="MyWeight" component={MyWeight} />
         <Stack.Screen name="WeightGoalSetup" component={WeightGoalSetup} />
+        <Stack.Screen name="Achievements" component={Achievements} />
       </Stack.Navigator>
     </BottomSheetModalProvider>
   );

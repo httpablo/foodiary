@@ -13,3 +13,7 @@ Os repositórios, consultas e a fila da API usam PostgreSQL. Defina `DATABASE_UR
 A autenticação local usa `AUTH_JWT_SECRET` (pelo menos 32 bytes). Gere um segredo para cada ambiente e mantenha-o fora do Git. Senhas são derivadas com scrypt, tokens de acesso expiram em 15 minutos e refresh tokens são rotacionados e armazenados como hash no banco. Para a recuperação de senha em desenvolvimento, o código de seis dígitos aparece no terminal da API; envio de e-mail ainda não está configurado. Em `NODE_ENV=production`, a solicitação de recuperação falha até que a entrega de e-mail seja implementada.
 
 Para habilitar metas de peso em um volume existente, aplique `008_weight_logs.sql` e depois `009_weight_goals.sql` com o mesmo comando. A migração é idempotente e marca as metas diárias existentes como calculadas para o peso atual do perfil.
+
+Para habilitar a sequência de registros em um volume existente, aplique `010_meal_logged_at.sql` com o mesmo comando. A coluna `logged_at` guarda quando cada refeição foi registrada; refeições antigas recebem a própria data da refeição e contam normalmente.
+
+Para habilitar as conquistas em um volume existente, aplique `011_achievements.sql` com o mesmo comando. As conquistas são avaliadas quando o app consulta `/achievements` e ficam gravadas, mesmo que as refeições ou metas mudem depois.

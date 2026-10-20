@@ -10,7 +10,9 @@ export type WeeklySummary = {
     date: string;
     mealCount: number;
     totals: NutritionTotals | null;
+    onTarget: boolean;
   }[];
   recordedDays: number;
+  daysOnTarget: number;
   averages: NutritionTotals | null;
 };

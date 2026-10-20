@@ -16,7 +16,21 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
-    minWidth: 150,
+    minWidth: 120,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: theme.colors['white/40'],
   },
   greetings: {
     gap: 2,

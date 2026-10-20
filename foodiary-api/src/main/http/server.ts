@@ -5,6 +5,8 @@ import { z, ZodError } from 'zod';
 
 import { Controller } from '@application/contracts/Controller';
 import { GetMeController } from '@application/controllers/accounts/GetMeController';
+import { AcknowledgeAchievementsController } from '@application/controllers/achievements/AcknowledgeAchievementsController';
+import { GetAchievementsController } from '@application/controllers/achievements/GetAchievementsController';
 import { ConfirmForgotPasswordController } from '@application/controllers/auth/ConfirmForgotPasswordController';
 import { ForgotPasswordController } from '@application/controllers/auth/ForgotPasswordController';
 import { RefreshTokenController } from '@application/controllers/auth/RefreshTokenController';
@@ -16,6 +18,7 @@ import { CreateMealController } from '@application/controllers/meals/CreateMealC
 import { CreateManualMealController } from '@application/controllers/meals/CreateManualMealController';
 import { DeleteMealController } from '@application/controllers/meals/DeleteMealController';
 import { GetMealByIdController } from '@application/controllers/meals/GetMealByIdController';
+import { GetStreakController } from '@application/controllers/meals/GetStreakController';
 import { GetWeeklySummaryController } from '@application/controllers/meals/GetWeeklySummaryController';
 import { ListMealsByDayController } from '@application/controllers/meals/ListMealsByDayController';
 import { ListMealHistoryController } from '@application/controllers/meals/ListMealHistoryController';
@@ -65,6 +68,8 @@ const routes: Route[] = [
   { method: 'POST', path: '/auth/forgot-password/confirm', private: false, controller: ConfirmForgotPasswordController },
   { method: 'GET', path: '/me', private: true, controller: GetMeController },
   { method: 'PUT', path: '/profiles', private: true, controller: UpdateProfileController },
+  { method: 'GET', path: '/achievements', private: true, controller: GetAchievementsController },
+  { method: 'POST', path: '/achievements/acknowledge', private: true, controller: AcknowledgeAchievementsController },
   { method: 'PUT', path: '/goals', private: true, controller: UpdateGoalController },
   { method: 'POST', path: '/goals/recalculate', private: true, controller: RecalculateGoalsController },
   { method: 'GET', path: '/weight-goal', private: true, controller: GetWeightGoalController },
@@ -76,6 +81,7 @@ const routes: Route[] = [
   { method: 'GET', path: '/meals', private: true, controller: ListMealsByDayController },
   { method: 'GET', path: '/meals/history', private: true, controller: ListMealHistoryController },
   { method: 'GET', path: '/meals/weekly-summary', private: true, controller: GetWeeklySummaryController },
+  { method: 'GET', path: '/meals/streak', private: true, controller: GetStreakController },
   { method: 'POST', path: '/meals/manual', private: true, controller: CreateManualMealController },
   { method: 'POST', path: '/meals', private: true, controller: CreateMealController },
   { method: 'GET', path: '/saved-foods', private: true, controller: ListSavedFoodsController },

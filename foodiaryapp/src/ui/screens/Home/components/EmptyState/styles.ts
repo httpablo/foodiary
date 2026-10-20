@@ -6,6 +6,15 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
   },
+  streakCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: theme.colors.gray[200],
+  },
+  streakText: { flex: 1, gap: 4 },
   errorCard: {
     padding: 16,
     borderRadius: 16,
