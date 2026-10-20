@@ -1,13 +1,14 @@
 import { AppStackNavigationProps } from '@app/navigation/AppStack';
 import { useAccount } from '@app/hooks/queries/useAccount';
+import { useStreak } from '@app/hooks/queries/useStreak';
 import { useWeeklySummary } from '@app/hooks/queries/useWeeklySummary';
-import { NutritionTotals } from '@app/types/WeeklySummary';
+import { NutritionTotals, WeeklySummary } from '@app/types/WeeklySummary';
 import { AppHeader } from '@ui/components/AppHeader';
 import { AppText } from '@ui/components/AppText';
 import { Button } from '@ui/components/Button';
 import { theme } from '@ui/styles/theme';
 import { formatDateToAPI } from '@ui/utils/formatDateToAPI';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react-native';
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, FlameIcon, ShieldIcon } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
@@ -22,6 +23,8 @@ const metrics: { key: Metric; shortLabel: string; label: string; unit: string; c
   { key: 'carbohydrates', shortLabel: 'Carbo.', label: 'Carboidratos', unit: 'g', color: theme.colors.support.yellow },
   { key: 'fats', shortLabel: 'Gorduras', label: 'Gorduras', unit: 'g', color: theme.colors.support.orange },
 ];
+
+const weeklyLogTarget = 5;
 
 const formatNumber = (value: number) => Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value);
 
@@ -48,9 +51,60 @@ function formatDay(date: string): string {
   return `${weekday.toUpperCase()} ${date.slice(8)}`;
 }
 
+function pluralDays(count: number) {
+  return `${count} ${count === 1 ? 'dia' : 'dias'}`;
+}
+
+function weeklyTargetMessage(days: WeeklySummary['days'], recordedDays: number, today: string) {
+  if (recordedDays >= weeklyLogTarget) {
+    return `Meta da semana cumprida: ${pluralDays(recordedDays)} com registro.`;
+  }
+  const missing = weeklyLogTarget - recordedDays;
+  const openDays = days.filter(day => day.date >= today && day.totals === null).length;
+  if (days[0]!.date > today || days[6]!.date < today || openDays < missing) {
+    return `Meta da semana: registrar ${weeklyLogTarget} dias.`;
+  }
+  return `Registre mais ${pluralDays(missing)} para cumprir a meta da semana.`;
+}
+
+function freezeTitle(freezes: number) {
+  if (freezes === 0) {
+    return 'Nenhum dia de folga';
+  }
+  return `${freezes} ${freezes === 1 ? 'dia de folga' : 'dias de folga'}`;
+}
+
+function freezeMessage(freezes: number, daysUntilNextFreeze: number | null) {
+  if (daysUntilNextFreeze === null) {
+    return 'Você tem o máximo de folgas. Cada uma cobre um dia sem registro.';
+  }
+  return `Registre mais ${pluralDays(daysUntilNextFreeze)} para ganhar ${freezes === 0 ? 'uma' : 'outra'}. Cada folga cobre um dia sem registro.`;
+}
+
+function dayStatus(day: WeeklySummary['days'][number], today: string, frozenDates: string[]) {
+  if (day.date > today) {
+    return { label: 'dia futuro', style: styles.dotFuture };
+  }
+  if (day.onTarget) {
+    return { label: 'na faixa da meta de calorias', style: styles.dotOnTarget };
+  }
+  if (day.totals) {
+    return { label: 'registrado, fora da faixa da meta', style: styles.dotRecorded };
+  }
+  if (frozenDates.includes(day.date)) {
+    return { label: 'dia de folga usado', style: styles.dotFrozen };
+  }
+  if (day.date === today) {
+    return { label: 'hoje, ainda sem registro', style: styles.dotFuture };
+  }
+  return { label: 'sem registro', style: styles.dotMissing };
+}
+
 export function WeeklySummaryScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const { account } = useAccount();
+  const { streak } = useStreak();
+  const frozenDates = streak?.frozenDates ?? [];
   const { navigate } = useNavigation<AppStackNavigationProps>();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selectedMetric, setSelectedMetric] = useState<Metric>('calories');
@@ -126,6 +180,120 @@ export function WeeklySummaryScreen() {
                   ? 'Nenhum dia com refeições registradas.'
                   : `${summary.recordedDays} ${summary.recordedDays === 1 ? 'dia com registro' : 'dias com registros'}.`}
               </AppText>
+            </View>
+
+            <View style={styles.section}>
+              <View style={styles.intro}>
+                <AppText size="lg" weight="semiBold">Constância</AppText>
+                <AppText size="sm" color={theme.colors.gray[700]}>
+                  Dias com registro e dias com calorias até 10% acima ou abaixo da meta.
+                </AppText>
+              </View>
+
+              {streak && (
+                <View style={styles.streakCard}>
+                  <View style={styles.streakRow}>
+                    <FlameIcon
+                      size={24}
+                      color={streak.loggedToday ? theme.colors.support.tomato : theme.colors.gray[700]}
+                      fill={streak.loggedToday ? theme.colors.support.orange : 'transparent'}
+                    />
+                    <View style={styles.streakText}>
+                      <AppText size="lg" weight="semiBold">
+                        {streak.currentStreak === 0 ? 'Nenhum dia seguido' : `${pluralDays(streak.currentStreak)} seguidos`}
+                      </AppText>
+                      <AppText size="sm" color={theme.colors.gray[700]}>
+                        {streak.currentStreak === 0
+                          ? 'Registre uma refeição hoje para começar uma sequência.'
+                          : streak.loggedToday
+                            ? 'Hoje já está registrado.'
+                            : 'Registre uma refeição hoje para manter a sequência.'}
+                      </AppText>
+                    </View>
+                    <View style={styles.bestStreak}>
+                      <AppText size="xs" color={theme.colors.gray[700]}>Recorde</AppText>
+                      <AppText weight="semiBold">{pluralDays(streak.bestStreak)}</AppText>
+                    </View>
+                  </View>
+
+                  <View style={styles.freezeRow}>
+                    <ShieldIcon size={20} color={theme.colors.supportText.teal} />
+                    <View style={styles.streakText}>
+                      <AppText size="sm" weight="semiBold">{freezeTitle(streak.freezesAvailable)}</AppText>
+                      <AppText size="xs" color={theme.colors.gray[700]}>
+                        {freezeMessage(streak.freezesAvailable, streak.daysUntilNextFreeze)}
+                      </AppText>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.consistencyCard}>
+                <View style={styles.dots}>
+                  {summary.days.map(day => {
+                    const status = dayStatus(day, today, frozenDates);
+                    return (
+                      <View
+                        key={day.date}
+                        accessible
+                        accessibilityLabel={`${formatDay(day.date)}: ${status.label}`}
+                        style={styles.dotColumn}
+                      >
+                        <View style={[styles.dot, status.style]}>
+                          {day.onTarget && <CheckIcon size={14} color={theme.colors.white} strokeWidth={3} />}
+                          {status.style === styles.dotFrozen && <ShieldIcon size={14} color={theme.colors.white} />}
+                        </View>
+                        <AppText size="xs" weight="medium" align="center" color={theme.colors.gray[700]}>
+                          {formatDay(day.date).split(' ')[0]}
+                        </AppText>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.legend}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, styles.dotOnTarget]} />
+                    <AppText size="xs" color={theme.colors.gray[700]}>Na meta</AppText>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, styles.dotRecorded]} />
+                    <AppText size="xs" color={theme.colors.gray[700]}>Registrado</AppText>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, styles.dotMissing]} />
+                    <AppText size="xs" color={theme.colors.gray[700]}>Sem registro</AppText>
+                  </View>
+                  {summary.days.some(day => !day.totals && frozenDates.includes(day.date)) && (
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, styles.dotFrozen]} />
+                      <AppText size="xs" color={theme.colors.gray[700]}>Folga</AppText>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.consistencyStats}>
+                  <View style={styles.consistencyStat}>
+                    <AppText size="xl" weight="semiBold">{summary.recordedDays}/7</AppText>
+                    <AppText size="sm" color={theme.colors.gray[700]}>dias com registro</AppText>
+                  </View>
+                  <View style={styles.consistencyStat}>
+                    <AppText size="xl" weight="semiBold">{summary.daysOnTarget}/7</AppText>
+                    <AppText size="sm" color={theme.colors.gray[700]}>dias na meta de calorias</AppText>
+                  </View>
+                </View>
+
+                <View style={styles.weeklyTarget}>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.weeklyTargetFill, {
+                      width: `${Math.min(summary.recordedDays / weeklyLogTarget, 1) * 100}%`,
+                    }]} />
+                  </View>
+                  <AppText size="sm" color={theme.colors.gray[700]}>
+                    {weeklyTargetMessage(summary.days, summary.recordedDays, today)}
+                  </AppText>
+                </View>
+              </View>
             </View>
 
             <View style={styles.section}>
@@ -250,6 +418,19 @@ export function WeeklySummaryScreen() {
                 })}
               </View>
             </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Ver conquistas"
+              onPress={() => navigate('Achievements')}
+              style={styles.weightLink}
+            >
+              <View style={styles.weightLinkText}>
+                <AppText weight="semiBold">Conquistas</AppText>
+                <AppText size="sm" color={theme.colors.gray[700]}>Veja os marcos que você já alcançou</AppText>
+              </View>
+              <ChevronRightIcon size={20} color={theme.colors.black[700]} />
+            </Pressable>
 
             <Pressable
               accessibilityRole="button"

@@ -19,6 +19,17 @@ export const queryKeys = {
       ? (['weeklySummary', date, timezoneOffsetMinutes] as const)
       : (['weeklySummary', date] as const);
   },
+  streak: (timezoneOffsetMinutes?: number) => (
+    timezoneOffsetMinutes !== undefined
+      ? (['streak', timezoneOffsetMinutes] as const)
+      : (['streak'] as const)
+  ),
+  achievements: (timezoneOffsetMinutes?: number) => (
+    timezoneOffsetMinutes !== undefined
+      ? (['achievements', timezoneOffsetMinutes] as const)
+      : (['achievements'] as const)
+  ),
+  reminderSettings: () => ['reminderSettings'] as const,
   mealHistory: (params?: unknown) => (
     params !== undefined ? (['mealHistory', params] as const) : (['mealHistory'] as const)
   ),
@@ -41,6 +52,7 @@ export async function invalidateWeightQueries(client: Pick<QueryClient, 'invalid
     client.invalidateQueries({ queryKey: queryKeys.account() }),
     client.invalidateQueries({ queryKey: queryKeys.weightLogs() }),
     client.invalidateQueries({ queryKey: queryKeys.weightGoal() }),
+    client.invalidateQueries({ queryKey: queryKeys.achievements() }),
   ]);
 }
 
@@ -52,6 +64,8 @@ export async function invalidateMealQueries(
     ...(mealId ? [client.invalidateQueries({ queryKey: queryKeys.meal(mealId) })] : []),
     client.invalidateQueries({ queryKey: queryKeys.meals(), refetchType: 'all' }),
     client.invalidateQueries({ queryKey: queryKeys.weeklySummary() }),
+    client.invalidateQueries({ queryKey: queryKeys.streak() }),
+    client.invalidateQueries({ queryKey: queryKeys.achievements() }),
     client.invalidateQueries({ queryKey: queryKeys.mealHistory() }),
   ]);
 }

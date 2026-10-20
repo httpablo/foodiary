@@ -15,6 +15,11 @@ export function addDays(date: string, days: number): string {
   return new Date(new Date(`${date}T00:00:00.000Z`).getTime() + days * dayInMs).toISOString().slice(0, 10);
 }
 
+export function startOfWeek(date: string): string {
+  const weekday = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+  return addDays(date, -((weekday + 6) % 7));
+}
+
 export function diffInDays(from: string, to: string): number {
   return Math.round(
     (new Date(`${to}T00:00:00.000Z`).getTime() - new Date(`${from}T00:00:00.000Z`).getTime()) / dayInMs,

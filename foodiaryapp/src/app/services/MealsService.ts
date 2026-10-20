@@ -1,5 +1,6 @@
 import { APIMeal, APISimplifiedMeal, Food, Meal, SimplifiedMeal } from '@app/types/Meal';
 import { env } from '@app/config/env';
+import { Streak } from '@app/types/Streak';
 import { WeeklySummary } from '@app/types/WeeklySummary';
 import { Service } from './Service';
 
@@ -58,6 +59,13 @@ export class MealsService extends Service {
   static async getWeeklySummary(startDate: string, timezoneOffsetMinutes: number): Promise<WeeklySummary> {
     const { data } = await this.client.get<WeeklySummary>('/meals/weekly-summary', {
       params: { startDate, timezoneOffsetMinutes },
+    });
+    return data;
+  }
+
+  static async getStreak(timezoneOffsetMinutes: number): Promise<Streak> {
+    const { data } = await this.client.get<Streak>('/meals/streak', {
+      params: { timezoneOffsetMinutes },
     });
     return data;
   }

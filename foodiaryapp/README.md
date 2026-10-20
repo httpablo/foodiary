@@ -15,6 +15,14 @@ A API usa PostgreSQL e arquivos locais. O processamento das refeições requer `
 
 Na tela inicial, **Ver resumo semanal** mostra calorias e nutrientes por dia, a média dos dias registrados e a comparação com as metas atuais. Semanas anteriores podem ser consultadas pelas setas; dias sem refeições aparecem como sem registro.
 
+No topo da tela inicial, o número ao lado da chama mostra quantos dias seguidos têm refeições registradas. O dia de hoje fica em aberto até terminar: a sequência só é interrompida depois de um dia inteiro sem registros. Refeições cadastradas para ontem ainda contam; registros feitos depois disso aparecem no histórico, mas não recuperam a sequência. No **Resumo semanal**, a seção **Constância** mostra a sequência atual, o recorde, a meta de registrar 5 dias por semana e os dias com calorias até 10% acima ou abaixo da meta.
+
+A cada 7 dias registrados na sequência, você ganha um dia de folga, até o limite de 2. Quando um dia termina sem refeições, uma folga cobre esse dia: a sequência continua, mas esse dia não soma. Os dias de folga usados aparecem com um escudo no **Resumo semanal**.
+
+Em **Conta > Conquistas**, veja os marcos de constância, de peso e das formas de registrar. Novas conquistas aparecem uma única vez na tela inicial.
+
+Em **Conta**, ative o **Lembrete diário** e escolha o horário (19h a 22h). O aviso é uma notificação local agendada no aparelho para os próximos 7 dias e é ignorado nos dias que já têm refeições registradas. Ele não está disponível na versão web e é desativado ao sair da conta. Teste em um celular, de preferência com um development build.
+
 Em **Ver histórico de refeições**, consulte todas as refeições concluídas, das mais recentes às mais antigas. Toque em um registro para abrir seus detalhes e corrigir ou repetir a refeição. Use **Carregar mais refeições** para buscar registros antigos em páginas de 20 e puxe a lista para atualizar. Datas e horários aparecem no fuso do dispositivo.
 
 Em **Cadastrar sua refeição**, escolha **Cadastrar manualmente** para registrar alimentos no dia selecionado sem usar a OpenAI. No formulário, você pode salvar alimentos frequentes e reutilizá-los em outras refeições. O banco local precisa ter recebido `005_manual_meals.sql` e `006_saved_foods.sql`.

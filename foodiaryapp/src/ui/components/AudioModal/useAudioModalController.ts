@@ -142,6 +142,8 @@ export function useAudioModalController({
       memoizedOnCreate.current?.();
       queryClient.invalidateQueries({ queryKey: ['meals'] });
       queryClient.invalidateQueries({ queryKey: ['weeklySummary'] });
+      queryClient.invalidateQueries({ queryKey: ['streak'] });
+      queryClient.invalidateQueries({ queryKey: ['achievements'] });
       navigate('MealDetails', { mealId: meal.id });
     }
   }, [meal?.status, meal?.id, navigate, queryClient, alert, stopAndResetRecording]);

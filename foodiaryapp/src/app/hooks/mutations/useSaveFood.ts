@@ -7,7 +7,10 @@ import { useMutation } from '@tanstack/react-query';
 export function useSaveFood() {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: (food: Omit<SavedFood, 'id'>) => SavedFoodsService.save(food),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.savedFoods() }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedFoods() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.achievements() }),
+    ]),
   });
   return { saveFood: mutateAsync, isSavingFood: isPending };
 }

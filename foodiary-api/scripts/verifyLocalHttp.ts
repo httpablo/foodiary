@@ -35,6 +35,7 @@ async function main() {
   const email = `http-check-${Date.now()}@example.test`;
   const otherEmail = `http-check-other-${Date.now()}@example.test`;
   const goalEmail = `http-check-goal-${Date.now()}@example.test`;
+  const streakEmail = `http-check-streak-${Date.now()}@example.test`;
   const password = 'http-password-123';
   const pool = getPostgresPool();
 
@@ -921,11 +922,137 @@ async function main() {
       headers: { Authorization: `Bearer ${signupTokens.accessToken}` },
     })).status, 404);
 
-    console.log('Local HTTP routes, authentication, meals, weekly summary, manual meals, saved foods, nutrition label scan, profile photo, and signed file access: OK');
+    // Streak: consecutive local days with meals registered by the end of the next day.
+    const streakSignup = await request('/auth/sign-up', json('POST', {
+      account: { email: streakEmail, password },
+      profile: {
+        name: 'Streak User', birthDate: '1992-03-10', gender: 'MALE', goal: 'MAINTAIN',
+        height: 180, weight: 80, activityLevel: 'MODERATE',
+      },
+    }));
+    assert.equal(streakSignup.status, 201);
+    const streakToken = (await streakSignup.json()).accessToken as string;
+    const streakAuth = { Authorization: `Bearer ${streakToken}` };
+    const streakOwner = (await pool.query<{ id: string }>('SELECT id FROM accounts WHERE email = $1', [streakEmail])).rows[0].id;
+    const getStreak = async () => {
+      const response = await request('/meals/streak?timezoneOffsetMinutes=0', { headers: streakAuth });
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    const streakFoods = (carbohydrates: number) => [{ name: 'Prato', quantity: '1 porção', proteins: 50, carbohydrates, fats: 40 }];
+    const insertMeal = (createdAt: string, loggedAt: string, carbohydrates = 100, status = 'SUCCESS') => pool.query(
+      `INSERT INTO meals (id, account_id, status, input_type, input_file_key, name, icon, foods, created_at, logged_at)
+       VALUES ($1, $2, $3, 'MANUAL', NULL, 'Prato', '🍽️', $4::jsonb, $5, $6)`,
+      [`streak${Math.random().toString(36).slice(2)}`, streakOwner, status,
+        JSON.stringify(streakFoods(carbohydrates).map(food => ({ ...food, calories: 0 }))), createdAt, loggedAt],
+    );
+    const streakToday = localDateFromOffset(0);
+    const noon = (date: string) => `${date}T12:00:00.000Z`;
+
+    assert.equal((await request('/meals/streak')).status, 401);
+    assert.equal((await request('/meals/streak?timezoneOffsetMinutes=9999', { headers: streakAuth })).status, 400);
+    assert.deepEqual(await getStreak(), {
+      currentStreak: 0, bestStreak: 0, loggedToday: false, freezesAvailable: 0, daysUntilNextFreeze: 7, frozenDates: [],
+    });
+
+    const todayMeal = await request('/meals/manual', json('POST', {
+      name: 'Hoje', foods: streakFoods(100), date: streakToday, timezoneOffsetMinutes: 0,
+    }, streakToken));
+    assert.equal(todayMeal.status, 201);
+    const { mealId: todayMealId } = await todayMeal.json();
+    assert.deepEqual(await getStreak(), {
+      currentStreak: 1, bestStreak: 1, loggedToday: true, freezesAvailable: 0, daysUntilNextFreeze: 6, frozenDates: [],
+    });
+
+    // Yesterday filled in today still counts; three days ago filled in today does not.
+    for (const daysAgo of [1, 3]) {
+      assert.equal((await request('/meals/manual', json('POST', {
+        name: 'Atrasado', foods: streakFoods(100), date: addDays(streakToday, -daysAgo), timezoneOffsetMinutes: 0,
+      }, streakToken))).status, 201);
+    }
+    await insertMeal(noon(addDays(streakToday, -2)), noon(addDays(streakToday, -2)));
+    await insertMeal(noon(addDays(streakToday, -2)), noon(addDays(streakToday, -1)));
+    for (const daysAgo of [4, 5, 6, 7]) {
+      await insertMeal(noon(addDays(streakToday, -daysAgo)), noon(addDays(streakToday, -daysAgo + 1)));
+    }
+    await insertMeal(noon(addDays(streakToday, -8)), noon(addDays(streakToday, -8)), 100, 'FAILED');
+    assert.deepEqual(await getStreak(), {
+      currentStreak: 3, bestStreak: 4, loggedToday: true, freezesAvailable: 0, daysUntilNextFreeze: 4, frozenDates: [],
+    });
+
+    // Today stays open: removing today's meal keeps the streak from yesterday.
+    assert.equal((await request(`/meals/${todayMealId}`, { method: 'DELETE', headers: streakAuth })).status, 204);
+    assert.deepEqual(await getStreak(), {
+      currentStreak: 2, bestStreak: 4, loggedToday: false, freezesAvailable: 0, daysUntilNextFreeze: 5, frozenDates: [],
+    });
+
+    // Days on target: calories within 10% of the goal, above or below.
+    assert.equal((await request('/goals', json('PUT', {
+      calories: 2000, proteins: 150, carbohydrates: 200, fats: 60,
+    }, streakToken))).status, 204);
+    await insertMeal(noon('2026-09-08'), noon('2026-09-08'), 330); // 1880 kcal
+    await insertMeal(noon('2026-09-09'), noon('2026-09-09'), 300); // 1760 kcal
+    await insertMeal(noon('2026-09-10'), noon('2026-09-10'), 410); // 2200 kcal
+    const targetWeek = await request('/meals/weekly-summary?startDate=2026-09-07&timezoneOffsetMinutes=0', { headers: streakAuth });
+    assert.equal(targetWeek.status, 200);
+    const targetSummary = await targetWeek.json();
+    assert.equal(targetSummary.recordedDays, 3);
+    assert.equal(targetSummary.daysOnTarget, 2);
+    assert.deepEqual(
+      targetSummary.days.map((day: { onTarget: boolean }) => day.onTarget),
+      [false, true, false, true, false, false, false],
+    );
+
+    // Freezes: seven logged days earn one, and a finished day without meals spends it.
+    await pool.query('DELETE FROM meals WHERE account_id = $1', [streakOwner]);
+    for (let daysAgo = 20; daysAgo >= 1; daysAgo -= 1) {
+      if (daysAgo !== 10 && daysAgo !== 2) {
+        await insertMeal(noon(addDays(streakToday, -daysAgo)), noon(addDays(streakToday, -daysAgo)));
+      }
+    }
+    assert.deepEqual(await getStreak(), {
+      currentStreak: 18,
+      bestStreak: 18,
+      loggedToday: false,
+      freezesAvailable: 0,
+      daysUntilNextFreeze: 3,
+      frozenDates: [addDays(streakToday, -10), addDays(streakToday, -2)],
+    });
+
+    // Achievements are evaluated on read, stored, and acknowledged by code.
+    const achievementsPath = '/achievements?timezoneOffsetMinutes=0';
+    const getAchievements = async () => {
+      const response = await request(achievementsPath, { headers: streakAuth });
+      assert.equal(response.status, 200);
+      return (await response.json()).achievements as { code: string; unlockedAt: string; acknowledgedAt: string | null }[];
+    };
+    const codesOf = (items: { code: string }[]) => items.map(item => item.code).sort();
+    assert.equal((await request(achievementsPath)).status, 401);
+    const unlocked = await getAchievements();
+    assert.deepEqual(codesOf(unlocked), ['FIRST_MEAL', 'STREAK_7', 'WEEKLY_TARGET']);
+    assert.equal(unlocked.every(item => item.acknowledgedAt === null && !Number.isNaN(Date.parse(item.unlockedAt))), true);
+    for (const badBody of [{}, { codes: [] }, { codes: ['UNKNOWN'] }]) {
+      assert.equal((await request('/achievements/acknowledge', json('POST', badBody, streakToken))).status, 400);
+    }
+    assert.equal((await request('/achievements/acknowledge', json('POST', { codes: ['FIRST_MEAL'] }))).status, 401);
+    assert.equal((await request('/achievements/acknowledge', json('POST', { codes: ['FIRST_MEAL'] }, streakToken))).status, 204);
+    const acknowledged = await getAchievements();
+    assert.notEqual(acknowledged.find(item => item.code === 'FIRST_MEAL')!.acknowledgedAt, null);
+    assert.equal(acknowledged.find(item => item.code === 'STREAK_7')!.acknowledgedAt, null);
+    // Unlocks persist after the meals behind them are gone, and new facts add to them.
+    await pool.query('DELETE FROM meals WHERE account_id = $1', [streakOwner]);
+    assert.equal((await request('/saved-foods', json('PUT', streakFoods(100)[0], streakToken))).status, 200);
+    assert.deepEqual(codesOf(await getAchievements()), ['FIRST_MEAL', 'SAVED_FOOD', 'STREAK_7', 'WEEKLY_TARGET']);
+    // Other accounts do not see these unlocks.
+    const otherAchievements = await request(achievementsPath, { headers: { Authorization: `Bearer ${goalToken}` } });
+    assert.equal(codesOf((await otherAchievements.json()).achievements).includes('STREAK_7'), false);
+
+    console.log('Local HTTP routes, authentication, meals, weekly summary, streak, achievements, manual meals, saved foods, nutrition label scan, profile photo, and signed file access: OK');
   } finally {
     await pool.query('DELETE FROM accounts WHERE email = $1', [email]);
     await pool.query('DELETE FROM accounts WHERE email = $1', [otherEmail]);
     await pool.query('DELETE FROM accounts WHERE email = $1', [goalEmail]);
+    await pool.query('DELETE FROM accounts WHERE email = $1', [streakEmail]);
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await pool.end();
     await rm(mealsDirectory, { recursive: true, force: true });

@@ -73,6 +73,22 @@ export class MealRepository {
     return this.deleteDeletable(params);
   }
 
+  // Local days with a completed meal registered by the end of the next day, oldest first.
+  async listLoggedDays(accountId: string, timezoneOffsetMinutes: number): Promise<string[]> {
+    const { rows } = await getPostgresPool().query<{ day: string }>(
+      `SELECT DISTINCT day::text AS day FROM (
+         SELECT ((created_at AT TIME ZONE 'UTC') - $3::int * INTERVAL '1 minute')::date AS day,
+                ((logged_at AT TIME ZONE 'UTC') - $3::int * INTERVAL '1 minute')::date AS logged_day
+         FROM meals
+         WHERE account_id = $1 AND status = $2
+       ) AS local_meals
+       WHERE logged_day <= day + 1
+       ORDER BY day`,
+      [accountId, Meal.Status.SUCCESS, timezoneOffsetMinutes],
+    );
+    return rows.map(row => row.day);
+  }
+
   async hasInputFile(fileKey: string): Promise<boolean> {
     const accountId = fileKey.split('/')[0];
     const { rowCount } = await getPostgresPool().query(
